@@ -192,22 +192,30 @@ style phone_button_text is phone_text:
     hover_color "#7c3aed"
 
 
-screen phone_status_bar(dark=False):
+screen phone_status_bar(dark=False, match_lock_position=False):
     $ status_color = "#ffffff" if dark else "#111827"
+    # The lock and home pages use different parent offsets and zoom values.
+    # Compensate inside the home page so both bars land on the same physical
+    # phone pixels. Explicit left/right coordinates also stop the right group
+    # from being shrink-wrapped differently by each parent screen.
+    $ status_y = -41 if match_lock_position else 0
+    $ status_left = 33 if match_lock_position else 42
+    $ status_right = 607 if match_lock_position else 602
 
     fixed:
-        xpos 18
-        ysize 42
+        ypos status_y
+        xysize (624, 42)
 
         text "Mobicom":
-            xpos 24
+            xpos status_left
             yalign 0.5
             size 17
             bold True
             color status_color
 
         hbox:
-            xalign 0.9
+            xpos status_right
+            xanchor 1.0
             yalign 0.5
             spacing 8
 
@@ -428,7 +436,7 @@ screen phone_main():
     # Preserve this screen's layout bounds without covering the wallpaper.
     add Null(width=624, height=984)
 
-    use phone_status_bar(dark=True)
+    use phone_status_bar(dark=True, match_lock_position=True)
 
     vbox:
         xpos 38
