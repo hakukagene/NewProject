@@ -7,6 +7,7 @@
 
 default phone_view = "lock"
 default phone_unlocked = False
+default phone_flashlight_on = False
 default phone_chat_input = ""
 default sara_unread_messages = 2
 default sara_is_typing = False
@@ -59,7 +60,7 @@ init python:
 
     def phone_unlock_drag_position(x, y):
         """Keep the unlock handle on its vertical swipe track."""
-        return 184, max(610, min(862, y))
+        return 222, max(620, min(930, y))
 
 
     def phone_unlock_dragged(drags, drop):
@@ -71,6 +72,15 @@ init python:
             renpy.restart_interaction()
         else:
             handle.snap(handle.start_x, handle.start_y, 0.18)
+
+
+    def phone_toggle_flashlight():
+        renpy.store.phone_flashlight_on = not renpy.store.phone_flashlight_on
+        if renpy.store.phone_flashlight_on:
+            renpy.notify("Гэрэл асаалаа")
+        else:
+            renpy.notify("Гэрэл унтраалаа")
+        renpy.restart_interaction()
 
 
     def phone_open_chat():
@@ -237,6 +247,7 @@ screen phone_ui():
 
 screen phone_lockscreen():
     add Null(width=624, height=984)
+    $ flashlight_color = "#fef08a" if phone_flashlight_on else "#ffffff"
 
     use phone_status_bar(dark=True)
 
@@ -279,42 +290,81 @@ screen phone_lockscreen():
                 text "Маргааш дахиад очвол ямар вэ?" style "phone_light_text" size 20
                 text "одоо" style "phone_light_text" size 14 color "#cbd5e1"
 
-    text "Дээш чирж нээнэ үү":
-        xalign 0.5
-        ypos 800
-        size 20
-        color "#ffffff"
+    button:
+        xpos 54
+        ypos 820
+        xysize (96, 96)
+        padding (0, 0)
+        background None
+        hover_background None
+        action Function(phone_toggle_flashlight)
 
-    text "⌃":
-        xalign 0.5
-        ypos 828
-        size 34
-        bold True
-        color "#ffffff"
+        fixed:
+            xysize (96, 96)
+
+            text "●":
+                xalign 0.5
+                yalign 0.5
+                size 96
+                color "#ffffff24"
+
+            fixed:
+                xalign 0.5
+                yalign 0.5
+                xysize (38, 48)
+
+                add Solid(flashlight_color) xpos 4 ypos 5 xysize (30, 9)
+                add Solid(flashlight_color) xpos 10 ypos 14 xysize (18, 24)
+                add Solid(flashlight_color) xpos 13 ypos 38 xysize (12, 5)
+
+    button:
+        xpos 474
+        ypos 820
+        xysize (96, 96)
+        padding (0, 0)
+        background None
+        hover_background None
+        action Notify("Камер дараагийн шатанд нэмэгдэнэ.")
+
+        fixed:
+            xysize (96, 96)
+
+            text "●":
+                xalign 0.5
+                yalign 0.5
+                size 96
+                color "#ffffff24"
+
+            fixed:
+                xalign 0.5
+                yalign 0.5
+                xysize (50, 42)
+
+                add Solid("#ffffff") xpos 4 ypos 10 xysize (42, 28)
+                add Solid("#ffffff") xpos 14 ypos 5 xysize (16, 7)
+                text "●" xpos 13 ypos 7 size 27 color "#465063"
+                text "●" xpos 19 ypos 13 size 15 color "#ffffff"
 
     draggroup:
         xysize (624, 984)
 
         drag:
-            xpos 184
-            ypos 862
+            xpos 222
+            ypos 930
             draggable True
             droppable False
             drag_raise False
             drag_offscreen phone_unlock_drag_position
             dragged phone_unlock_dragged
 
-            frame:
-                xysize (256, 70)
-                padding (12, 10)
-                background Solid("#ffffff2b")
+            fixed:
+                xysize (180, 36)
 
-                hbox:
+                text "━━━━━━━━":
                     xalign 0.5
                     yalign 0.5
-                    spacing 12
-                    text "↑" size 28 bold True color "#ffffff"
-                    text "SWIPE UP" size 18 bold True color "#ffffff"
+                    size 20
+                    color "#ffffff"
 
 
 
