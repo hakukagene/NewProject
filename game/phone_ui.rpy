@@ -356,41 +356,56 @@ screen phone_lockscreen():
                 text "Маргааш дахиад очвол ямар вэ?" style "phone_light_text" size 20
                 text "одоо" style "phone_light_text" size 14 color "#cbd5e1"
 
+    # Bottom controls use the same proportions as the reference lock screen.
+    # phone_lock_content_fit turns the 90x67 ellipse into a 71px circle.
     button:
-        xpos 54
-        ypos 820
-        xysize (96, 96)
+        xpos 72
+        ypos 844
+        xysize (96, 82)
         padding (0, 0)
         background None
         hover_background None
         action Function(phone_toggle_flashlight)
 
         fixed:
-            xysize (96, 96)
-            add "pLightOff"
+            xysize (96, 82)
+
+            add "pQuickActionBackground":
+                xalign 0.5
+                yalign 0.5
+
+            if phone_flashlight_on:
+                add "pLightOn":
+                    xalign 0.5
+                    yalign 0.5
+            else:
+                add "pLightOff":
+                    xalign 0.5
+                    yalign 0.5
+
     button:
-        xpos 474
-        ypos 820
-        xysize (96, 96)
+        xpos 456
+        ypos 844
+        xysize (96, 82)
         padding (0, 0)
         background None
         hover_background None
         action Notify("Камер дараагийн шатанд нэмэгдэнэ.")
 
         fixed:
-            xysize (96, 96)
-            add "pCameraIcon"
+            xysize (96, 82)
 
-    fixed:
-        xpos 222
-        ypos 930
-        xysize (180, 36)
+            add "pQuickActionBackground":
+                xalign 0.5
+                yalign 0.5
 
-        text "━━━━━━━━":
-            xalign 0.5
-            yalign 0.5
-            size 20
-            color "#ffffff"
+            add "pCameraIcon":
+                xalign 0.5
+                yalign 0.5
+
+    add "pSwipeLine":
+        xpos 202
+        ypos 962
 
 
 
