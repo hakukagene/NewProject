@@ -240,6 +240,9 @@ screen phone_ui():
         # intentionally below the wallpaper because its centre is opaque.
         add "pBorder"
         add "pWallpaper"
+        # The home UI remains transparent. This full wallpaper-shaped layer
+        # supplies the requested black alpha overlay behind all home content.
+        add "homeScreenBlackOverlay"
 
         if phone_is_locked:
             # The unlocked home page is already below the lock panel, so it
@@ -422,8 +425,8 @@ screen phone_lockscreen():
 
 
 screen phone_main():
-    add Solid("#172554")
-    add Solid("#4c1d9588") ypos 360 ysize 624
+    # Preserve this screen's layout bounds without covering the wallpaper.
+    add Null(width=624, height=984)
 
     use phone_status_bar(dark=True)
 
@@ -451,9 +454,9 @@ screen phone_main():
             spacing 20
             yalign 0.5
 
-            frame:
-                xysize (68, 68)
-                background Solid("#f59e0b")
+            fixed:
+                xysize (68, 53)
+                add "pHomeStoryIcon"
                 text "S" style "phone_icon_text" xalign 0.5 yalign 0.5
 
             vbox:
@@ -475,10 +478,10 @@ screen phone_main():
             vbox:
                 xalign 0.5
                 spacing 10
-                frame:
+                fixed:
                     xalign 0.5
-                    xysize (84, 84)
-                    background Solid("#7c3aed")
+                    xysize (84, 66)
+                    add "pHomeMomentIcon"
                     text "M" style "phone_icon_text" xalign 0.5 yalign 0.5
                 text "Moment" style "phone_light_text" size 18 xalign 0.5
 
@@ -490,11 +493,9 @@ screen phone_main():
                 xalign 0.5
                 spacing 10
                 fixed:
-                    xysize (84, 84)
-                    frame:
-                        xysize (84, 84)
-                        background Solid("#10b981")
-                        text "C" style "phone_icon_text" xalign 0.5 yalign 0.5
+                    xysize (84, 66)
+                    add "pHomeChatIcon"
+                    text "C" style "phone_icon_text" xalign 0.5 yalign 0.5
                     if sara_unread_messages:
                         frame:
                             xalign 1.0
@@ -512,10 +513,10 @@ screen phone_main():
             vbox:
                 xalign 0.5
                 spacing 10
-                frame:
+                fixed:
                     xalign 0.5
-                    xysize (84, 84)
-                    background Solid("#0ea5e9")
+                    xysize (84, 66)
+                    add "pHomeCameraIcon"
                     text "CAM" style "phone_icon_text" size 20 xalign 0.5 yalign 0.5
                 text "Камер" style "phone_light_text" size 18 xalign 0.5
 
@@ -526,10 +527,10 @@ screen phone_main():
             vbox:
                 xalign 0.5
                 spacing 10
-                frame:
+                fixed:
                     xalign 0.5
-                    xysize (84, 84)
-                    background Solid("#ec4899")
+                    xysize (84, 66)
+                    add "pHomeGalleryIcon"
                     text "PIC" style "phone_icon_text" size 20 xalign 0.5 yalign 0.5
                 text "Зураг" style "phone_light_text" size 18 xalign 0.5
 
@@ -540,10 +541,10 @@ screen phone_main():
             vbox:
                 xalign 0.5
                 spacing 10
-                frame:
+                fixed:
                     xalign 0.5
-                    xysize (84, 84)
-                    background Solid("#f59e0b")
+                    xysize (84, 66)
+                    add "pHomeNotesIcon"
                     text "N" style "phone_icon_text" xalign 0.5 yalign 0.5
                 text "Тэмдэглэл" style "phone_light_text" size 18 xalign 0.5
 
@@ -554,26 +555,12 @@ screen phone_main():
             vbox:
                 xalign 0.5
                 spacing 10
-                frame:
+                fixed:
                     xalign 0.5
-                    xysize (84, 84)
-                    background Solid("#64748b")
+                    xysize (84, 66)
+                    add "pHomeSettingsIcon"
                     text "SET" style "phone_icon_text" size 18 xalign 0.5 yalign 0.5
                 text "Тохиргоо" style "phone_light_text" size 18 xalign 0.5
-
-    textbutton "УТСАА ХААХ":
-        xalign 0.5
-        ypos 900
-        text_size 17
-        text_color "#ddd6fe"
-        text_hover_color "#ffffff"
-        background Solid("#ffffff12")
-        hover_background Solid("#ffffff24")
-        padding (24, 12)
-        action Return()
-
-    add Solid("#ffffff") xysize (190, 5) xalign 0.5 ypos 966
-
 
 screen phone_social():
     add Solid("#f8fafc")
