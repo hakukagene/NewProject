@@ -332,29 +332,49 @@ screen phone_lockscreen():
             size 21
             color "#e0e7ff"
 
-    frame:
+    # Wide glass notification, proportioned like the phone reference.
+    # Every label is positioned independently so a long message cannot move
+    # the title or timestamp.
+    fixed:
         xalign 0.5
-        ypos 600
-        xysize (552, 142)
-        padding (20, 18)
-        background Solid("#111827cc")
+        ypos 748
+        xysize (592, 78)
 
-        hbox:
-            spacing 16
-            yalign 0.5
+        add "pNotificationGlass"
 
-            frame:
-                xysize (64, 64)
-                background Solid("#7c3aed")
-                text "M" style "phone_icon_text" xalign 0.5 yalign 0.5
+        fixed:
+            xpos 22
+            ypos 16
+            xysize (64, 47)
 
-            vbox:
-                xmaximum 420
+            add "pMomentNotificationIcon"
+            text "M":
+                xalign 0.5
                 yalign 0.5
-                spacing 4
-                text "Moment · Сара" style "phone_light_text" size 19 bold True
-                text "Маргааш дахиад очвол ямар вэ?" style "phone_light_text" size 20
-                text "одоо" style "phone_light_text" size 14 color "#cbd5e1"
+                size 27
+                bold True
+                color "#ffffff"
+
+        text "Moment · Сара":
+            xpos 104
+            ypos 12
+            size 18
+            bold True
+            color "#ffffff"
+
+        text "одоо":
+            xpos 562
+            xanchor 1.0
+            ypos 12
+            size 17
+            color "#e2e8f0"
+
+        text "Маргааш дахиад очвол ямар вэ?":
+            xpos 104
+            ypos 38
+            xmaximum 454
+            size 20
+            color "#ffffff"
 
     button:
         xpos 70
