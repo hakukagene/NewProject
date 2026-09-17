@@ -44,6 +44,35 @@ init python:
         return datetime.datetime.now().strftime("%H:%M")
 
 
+    def phone_current_date():
+        weekdays = (
+            "Даваа", "Мягмар", "Лхагва", "Пүрэв",
+            "Баасан", "Бямба", "Ням",
+        )
+        now = datetime.datetime.now()
+        return "%d-р сарын %d · %s" % (
+            now.month,
+            now.day,
+            weekdays[now.weekday()],
+        )
+
+
+    def phone_unlock_drag_position(x, y):
+        """Keep the unlock handle on its vertical swipe track."""
+        return 184, max(610, min(862, y))
+
+
+    def phone_unlock_dragged(drags, drop):
+        """Unlock after a deliberate upward swipe; otherwise snap back."""
+        handle = drags[0]
+        if handle.start_y - handle.y >= 145:
+            renpy.store.phone_unlocked = True
+            renpy.store.phone_view = "home"
+            renpy.restart_interaction()
+        else:
+            handle.snap(handle.start_x, handle.start_y, 0.18)
+
+
     def phone_open_chat():
         renpy.store.phone_view = "chat"
         renpy.store.sara_unread_messages = 0
@@ -85,6 +114,13 @@ transform phone_appear:
     alpha 0.0
     zoom 0.85
     ease 0.18 alpha 1.0 zoom 0.9
+
+
+transform phone_content_fit:
+    # The original UI is 624x984. Scale it into the usable area of the
+    # 800x1199 phone artwork without covering the frame or rounded corners.
+    xzoom 0.7692308
+    yzoom 0.9756098
 
 
 
@@ -155,29 +191,118 @@ screen phone_ui():
     key "game_menu" action Return()
     timer 30.0 repeat True action Function(renpy.restart_interaction)
     
-    add 'pBorder' at phone_appear:
+    add Solid("#07111bd9")
+
+    fixed at phone_appear:
         xalign 0.5
         yalign 0.5
-    add 'pWallpaper' at phone_appear:
-        xalign 0.5
-        yalign 0.5
-    
-    '''frame at phone_appear:
-        xalign 0.5
-        yalign 0.5
-        xysize (660, 1020)
-        padding (18, 18)
-        background Solid("#05070b")
+        xysize (800, 1199)
+
+        # These two images were added in the LockScreen commit. The border is
+        # intentionally below the wallpaper because its centre is opaque.
+        add "pBorder"
+        add "pWallpaper"
 
         fixed:
-            xysize (624, 984)
+            xpos 160
+            ypos 120
+            xysize (480, 960)
+            clipping True
 
-            if phone_view == "home":
-                use phone_main
-            elif phone_view == "social":
-                use phone_social
-            else:
-                use phone_sara_chat'''
+            fixed at phone_content_fit:
+                xysize (624, 984)
+
+                if phone_view == "lock" or not phone_unlocked:
+                    use phone_lockscreen
+                elif phone_view == "home":
+                    use phone_main
+                elif phone_view == "social":
+                    use phone_social
+                else:
+                    use phone_sara_chat
+
+
+screen phone_lockscreen():
+    add Solid("#050816a6")
+
+    use phone_status_bar(dark=True)
+
+    vbox:
+        xalign 0.5
+        ypos 105
+        spacing 2
+
+        text "[phone_current_time()]":
+            xalign 0.5
+            size 92
+            bold True
+            color "#ffffff"
+        text "[phone_current_date()]":
+            xalign 0.5
+            size 22
+            color "#e0e7ff"
+
+    frame:
+        xpos 32
+        ypos 340
+        xysize (560, 142)
+        padding (20, 18)
+        background Solid("#111827cc")
+
+        hbox:
+            spacing 16
+            yalign 0.5
+
+            frame:
+                xysize (64, 64)
+                background Solid("#7c3aed")
+                text "M" style "phone_icon_text" xalign 0.5 yalign 0.5
+
+            vbox:
+                xmaximum 430
+                yalign 0.5
+                spacing 4
+                text "Moment · Сара" style "phone_light_text" size 19 bold True
+                text "Маргааш дахиад очвол ямар вэ?" style "phone_light_text" size 20
+                text "одоо" style "phone_light_text" size 14 color "#cbd5e1"
+
+    text "Дээш чирж нээнэ үү":
+        xalign 0.5
+        ypos 812
+        size 20
+        color "#ffffff"
+
+    text "⌃":
+        xalign 0.5
+        ypos 838
+        size 34
+        bold True
+        color "#ffffff"
+
+    draggroup:
+        xysize (624, 984)
+
+        drag:
+            xpos 184
+            ypos 862
+            draggable True
+            droppable False
+            drag_raise False
+            drag_offscreen phone_unlock_drag_position
+            dragged phone_unlock_dragged
+
+            frame:
+                xysize (256, 70)
+                padding (12, 10)
+                background Solid("#ffffff2b")
+
+                hbox:
+                    xalign 0.5
+                    yalign 0.5
+                    spacing 12
+                    text "↑" size 28 bold True color "#ffffff"
+                    text "SWIPE UP" size 18 bold True color "#ffffff"
+
 
 
 screen phone_main():
