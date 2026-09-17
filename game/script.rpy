@@ -13,7 +13,8 @@ label start:
 
     e "Утасны интерфейсийн эхний хувилбарыг туршиж үзье."
 
-    $ phone_view = "home"
+    $ phone_unlocked = False
+    $ phone_view = "lock"
     call screen phone_ui
 
     e "Утас хаагдлаа. Дараагийн шатанд AI сервертэй холбоно."
