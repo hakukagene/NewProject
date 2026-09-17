@@ -334,7 +334,7 @@ screen phone_lockscreen():
 
     frame:
         xalign 0.5
-        ypos 330
+        ypos 600
         xysize (552, 142)
         padding (20, 18)
         background Solid("#111827cc")
@@ -356,56 +356,48 @@ screen phone_lockscreen():
                 text "Маргааш дахиад очвол ямар вэ?" style "phone_light_text" size 20
                 text "одоо" style "phone_light_text" size 14 color "#cbd5e1"
 
-    # Bottom controls use the same proportions as the reference lock screen.
-    # phone_lock_content_fit turns the 90x67 ellipse into a 71px circle.
     button:
-        xpos 72
-        ypos 844
-        xysize (96, 82)
+        xpos 70
+        ypos 850
+        xysize (96, 96)
         padding (0, 0)
         background None
         hover_background None
         action Function(phone_toggle_flashlight)
+        fixed:
+            add "pQuickActionBackground"
 
         fixed:
-            xysize (96, 82)
-
-            add "pQuickActionBackground":
-                xalign 0.5
-                yalign 0.5
-
-            if phone_flashlight_on:
-                add "pLightOn":
-                    xalign 0.5
-                    yalign 0.5
-            else:
-                add "pLightOff":
-                    xalign 0.5
-                    yalign 0.5
-
+            xpos 35
+            ypos 15
+            xysize (96, 96)
+            add "pLightOff"
     button:
-        xpos 456
-        ypos 844
-        xysize (96, 82)
+        xpos 474
+        ypos 850
+        xysize (96, 96)
         padding (0, 0)
         background None
         hover_background None
         action Notify("Камер дараагийн шатанд нэмэгдэнэ.")
-
         fixed:
-            xysize (96, 82)
+            add "pQuickActionBackground"
+        fixed:
+            xpos 25
+            ypos 20
+            xysize (96, 96)
+            add "pCameraIcon"
 
-            add "pQuickActionBackground":
-                xalign 0.5
-                yalign 0.5
+    fixed:
+        xpos 222
+        ypos 930
+        xysize (180, 36)
 
-            add "pCameraIcon":
-                xalign 0.5
-                yalign 0.5
-
-    add "pSwipeLine":
-        xpos 202
-        ypos 962
+        text "━━━━━━━━":
+            xalign 0.5
+            yalign 0.5
+            size 20
+            color "#ffffff"
 
 
 
