@@ -35,3 +35,5 @@ image pCameraIcon = Transform(
 
 image pQuickActionBackground = "images/phoneUI/quick_action_background.svg"
 image pSwipeLine = "images/phoneUI/swipe_line.svg"
+image pNotificationGlass = "images/phoneUI/notification_glass.svg"
+image pMomentNotificationIcon = "images/phoneUI/moment_notification_icon.svg"
