@@ -152,9 +152,9 @@ transform phone_content_fit:
     yzoom 0.9756098
 
 
-transform phone_lock_content_fit:
-    # The lock screen can use the whole wallpaper. The gray layer is masked
-    # to the same rounded shape, including the transparent notch.
+transform phone_fullscreen_fit:
+    # Fill the complete 492x1048 display opening. The bezel overlay masks the
+    # rounded corners and notch for lock, status, and in-phone app screens.
     xzoom 0.7884615
     yzoom 1.0650407
 
@@ -257,7 +257,7 @@ screen phone_ui():
             # Draw the home status bar in the same coordinate system as the
             # lock status bar. Keeping it outside phone_main prevents its
             # negative Y compensation from being clipped by that screen.
-            fixed at phone_lock_content_fit:
+            fixed at phone_fullscreen_fit:
                 xpos 152
                 ypos 78
                 xysize (624, 984)
@@ -298,34 +298,40 @@ screen phone_ui():
                             add "pWallpaper"
                             add "lockScreenGray"
 
-                            fixed at phone_lock_content_fit:
+                            fixed at phone_fullscreen_fit:
                                 xpos 152
                                 ypos 78
                                 xysize (624, 984)
 
                                 use phone_lockscreen
         else:
-            # Scale only once. The old nested 480px container compressed and
-            # shifted every child before this transform was applied.
-            fixed at phone_content_fit:
-                xpos 160
-                ypos 120
-                xysize (624, 984)
-
-                if phone_view == "home":
-                    use phone_main
-                elif phone_view == "social":
-                    use phone_social
-                else:
-                    use phone_sara_chat
-
             if phone_view == "home":
-                fixed at phone_lock_content_fit:
+                # Keep the icon grid in its existing safe-area layout.
+                fixed at phone_content_fit:
+                    xpos 160
+                    ypos 120
+                    xysize (624, 984)
+
+                    use phone_main
+
+                fixed at phone_fullscreen_fit:
                     xpos 152
                     ypos 78
                     xysize (624, 984)
 
                     use phone_status_bar(dark=True)
+            else:
+                # Every app page covers the complete display opening instead
+                # of leaving the wallpaper visible around a smaller safe area.
+                fixed at phone_fullscreen_fit:
+                    xpos 152
+                    ypos 78
+                    xysize (624, 984)
+
+                    if phone_view == "social":
+                        use phone_social
+                    else:
+                        use phone_sara_chat
 
         # Keep the bezel, rounded corners, and notch stationary above every
         # moving page. Transparent screen pixels remain fully interactive.
