@@ -196,10 +196,10 @@ screen phone_status_bar(dark=False):
     $ status_color = "#ffffff" if dark else "#111827"
 
     fixed:
-        xfill True
+        xpos 18
         ysize 42
 
-        text "[phone_current_time()]":
+        text "Mobicom":
             xpos 24
             yalign 0.5
             size 17
@@ -207,7 +207,7 @@ screen phone_status_bar(dark=False):
             color status_color
 
         hbox:
-            xalign 0.96
+            xalign 0.9
             yalign 0.5
             spacing 8
 
@@ -367,22 +367,7 @@ screen phone_lockscreen():
 
         fixed:
             xysize (96, 96)
-
-            text "●":
-                xalign 0.5
-                yalign 0.5
-                size 96
-                color "#ffffff24"
-
-            fixed:
-                xalign 0.5
-                yalign 0.5
-                xysize (38, 48)
-
-                add Solid(flashlight_color) xpos 4 ypos 5 xysize (30, 9)
-                add Solid(flashlight_color) xpos 10 ypos 14 xysize (18, 24)
-                add Solid(flashlight_color) xpos 13 ypos 38 xysize (12, 5)
-
+            add "pLightOff"
     button:
         xpos 474
         ypos 820
@@ -394,22 +379,7 @@ screen phone_lockscreen():
 
         fixed:
             xysize (96, 96)
-
-            text "●":
-                xalign 0.5
-                yalign 0.5
-                size 96
-                color "#ffffff24"
-
-            fixed:
-                xalign 0.5
-                yalign 0.5
-                xysize (50, 42)
-
-                add Solid("#ffffff") xpos 4 ypos 10 xysize (42, 28)
-                add Solid("#ffffff") xpos 14 ypos 5 xysize (16, 7)
-                text "●" xpos 13 ypos 7 size 27 color "#465063"
-                text "●" xpos 19 ypos 13 size 15 color "#ffffff"
+            add "pCameraIcon"
 
     fixed:
         xpos 222
