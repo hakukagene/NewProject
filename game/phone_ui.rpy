@@ -192,29 +192,21 @@ style phone_button_text is phone_text:
     hover_color "#7c3aed"
 
 
-screen phone_status_bar(dark=False, match_lock_position=False):
+screen phone_status_bar(dark=False):
     $ status_color = "#ffffff" if dark else "#111827"
-    # The lock and home pages use different parent offsets and zoom values.
-    # Compensate inside the home page so both bars land on the same physical
-    # phone pixels. Explicit left/right coordinates also stop the right group
-    # from being shrink-wrapped differently by each parent screen.
-    $ status_y = -41 if match_lock_position else 0
-    $ status_left = 33 if match_lock_position else 42
-    $ status_right = 607 if match_lock_position else 602
 
     fixed:
-        ypos status_y
         xysize (624, 42)
 
         text "Mobicom":
-            xpos status_left
+            xpos 42
             yalign 0.5
             size 17
             bold True
             color status_color
 
         hbox:
-            xpos status_right
+            xpos 602
             xanchor 1.0
             yalign 0.5
             spacing 8
@@ -261,6 +253,16 @@ screen phone_ui():
                 xysize (624, 984)
 
                 use phone_main
+
+            # Draw the home status bar in the same coordinate system as the
+            # lock status bar. Keeping it outside phone_main prevents its
+            # negative Y compensation from being clipped by that screen.
+            fixed at phone_lock_content_fit:
+                xpos 152
+                ypos 78
+                xysize (624, 984)
+
+                use phone_status_bar(dark=True)
 
             # Clip the moving page to the wallpaper's 492x1048 inner bounds.
             # This prevents it from escaping above or below the phone while
@@ -316,6 +318,14 @@ screen phone_ui():
                     use phone_social
                 else:
                     use phone_sara_chat
+
+            if phone_view == "home":
+                fixed at phone_lock_content_fit:
+                    xpos 152
+                    ypos 78
+                    xysize (624, 984)
+
+                    use phone_status_bar(dark=True)
 
         # Keep the bezel, rounded corners, and notch stationary above every
         # moving page. Transparent screen pixels remain fully interactive.
@@ -435,8 +445,6 @@ screen phone_lockscreen():
 screen phone_main():
     # Preserve this screen's layout bounds without covering the wallpaper.
     add Null(width=624, height=984)
-
-    use phone_status_bar(dark=True, match_lock_position=True)
 
     vbox:
         xpos 38
