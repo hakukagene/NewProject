@@ -117,10 +117,16 @@ transform phone_appear:
 
 
 transform phone_content_fit:
-    # The original UI is 624x984. Scale it into the usable area of the
-    # 800x1199 phone artwork without covering the frame or rounded corners.
+    # Unlocked pages stay inside the phone's safe rectangular area.
     xzoom 0.7692308
     yzoom 0.9756098
+
+
+transform phone_lock_content_fit:
+    # The lock screen can use the whole wallpaper. The gray layer is masked
+    # to the same rounded shape, including the transparent notch.
+    xzoom 0.7884615
+    yzoom 1.0650407
 
 
 
@@ -190,6 +196,7 @@ screen phone_ui():
 
     key "game_menu" action Return()
     timer 30.0 repeat True action Function(renpy.restart_interaction)
+    $ phone_is_locked = phone_view == "lock" or not phone_unlocked
     
     add Solid("#07111bd9")
 
@@ -203,18 +210,24 @@ screen phone_ui():
         add "pBorder"
         add "pWallpaper"
 
-        fixed:
-            xpos 160
-            ypos 120
-            xysize (480, 960)
-            clipping True
+        if phone_is_locked:
+            add "lockScreenGray"
 
-            fixed at phone_content_fit:
+            fixed at phone_lock_content_fit:
+                xpos 152
+                ypos 78
                 xysize (624, 984)
 
-                if phone_view == "lock" or not phone_unlocked:
-                    use phone_lockscreen
-                elif phone_view == "home":
+                use phone_lockscreen
+        else:
+            # Scale only once. The old nested 480px container compressed and
+            # shifted every child before this transform was applied.
+            fixed at phone_content_fit:
+                xpos 160
+                ypos 120
+                xysize (624, 984)
+
+                if phone_view == "home":
                     use phone_main
                 elif phone_view == "social":
                     use phone_social
@@ -223,29 +236,29 @@ screen phone_ui():
 
 
 screen phone_lockscreen():
-    add Solid("#050816a6")
+    add Null(width=624, height=984)
 
     use phone_status_bar(dark=True)
 
     vbox:
         xalign 0.5
-        ypos 105
+        ypos 96
         spacing 2
 
         text "[phone_current_time()]":
             xalign 0.5
-            size 92
+            size 88
             bold True
             color "#ffffff"
         text "[phone_current_date()]":
             xalign 0.5
-            size 22
+            size 21
             color "#e0e7ff"
 
     frame:
-        xpos 32
-        ypos 340
-        xysize (560, 142)
+        xalign 0.5
+        ypos 330
+        xysize (552, 142)
         padding (20, 18)
         background Solid("#111827cc")
 
@@ -259,7 +272,7 @@ screen phone_lockscreen():
                 text "M" style "phone_icon_text" xalign 0.5 yalign 0.5
 
             vbox:
-                xmaximum 430
+                xmaximum 420
                 yalign 0.5
                 spacing 4
                 text "Moment · Сара" style "phone_light_text" size 19 bold True
@@ -268,13 +281,13 @@ screen phone_lockscreen():
 
     text "Дээш чирж нээнэ үү":
         xalign 0.5
-        ypos 812
+        ypos 800
         size 20
         color "#ffffff"
 
     text "⌃":
         xalign 0.5
-        ypos 838
+        ypos 828
         size 34
         bold True
         color "#ffffff"
