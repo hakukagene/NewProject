@@ -14,6 +14,7 @@ label start:
     e "Утасны интерфейсийн эхний хувилбарыг туршиж үзье."
 
     $ phone_unlocked = False
+    $ phone_unlock_pending = False
     $ phone_view = "lock"
     call screen phone_ui
 

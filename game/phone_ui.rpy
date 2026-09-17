@@ -7,6 +7,7 @@
 
 default phone_view = "lock"
 default phone_unlocked = False
+default phone_unlock_pending = False
 default phone_flashlight_on = False
 default phone_chat_input = ""
 default sara_unread_messages = 2
@@ -58,20 +59,39 @@ init python:
         )
 
 
-    def phone_unlock_drag_position(x, y):
-        """Keep the unlock handle on its vertical swipe track."""
-        return 222, max(620, min(930, y))
+    PHONE_UNLOCK_DISTANCE = 300
+    PHONE_LOCK_EXIT_Y = -1199
 
 
-    def phone_unlock_dragged(drags, drop):
-        """Unlock after a deliberate upward swipe; otherwise snap back."""
-        handle = drags[0]
-        if handle.start_y - handle.y >= 145:
+    def phone_lock_drag_position(x, y):
+        """Move the complete lock panel vertically and keep it on its track."""
+        return 0, min(0, max(PHONE_LOCK_EXIT_Y, y))
+
+
+    def phone_lock_dragged(drags, drop):
+        """Finish the unlock animation or return the panel to the bottom."""
+        panel = drags[0]
+        distance = panel.start_y - panel.y
+
+        if distance >= PHONE_UNLOCK_DISTANCE:
+            renpy.store.phone_unlock_pending = True
+            panel.snap(0, PHONE_LOCK_EXIT_Y, 0.28)
+        else:
+            renpy.store.phone_unlock_pending = False
+            panel.snap(0, 0, 0.22)
+
+
+    def phone_lock_snapped(panel, x, y, completed):
+        """Switch screens only after the upward snap animation completes."""
+        if not completed:
+            renpy.store.phone_unlock_pending = False
+            return
+
+        if renpy.store.phone_unlock_pending and y <= PHONE_LOCK_EXIT_Y:
+            renpy.store.phone_unlock_pending = False
             renpy.store.phone_unlocked = True
             renpy.store.phone_view = "home"
             renpy.restart_interaction()
-        else:
-            handle.snap(handle.start_x, handle.start_y, 0.18)
 
 
     def phone_toggle_flashlight():
@@ -214,6 +234,7 @@ screen phone_ui():
         xalign 0.5
         yalign 0.5
         xysize (800, 1199)
+        clipping True
 
         # These two images were added in the LockScreen commit. The border is
         # intentionally below the wallpaper because its centre is opaque.
@@ -221,14 +242,44 @@ screen phone_ui():
         add "pWallpaper"
 
         if phone_is_locked:
-            add "lockScreenGray"
-
-            fixed at phone_lock_content_fit:
-                xpos 152
-                ypos 78
+            # The unlocked home page is already below the lock panel, so it
+            # is revealed continuously while the player swipes upward.
+            fixed at phone_content_fit:
+                xpos 160
+                ypos 120
                 xysize (624, 984)
 
-                use phone_lockscreen
+                use phone_main
+
+            draggroup:
+                xysize (800, 1199)
+
+                drag:
+                    xpos 0
+                    ypos 0
+                    draggable True
+                    droppable False
+                    drag_raise False
+                    drag_handle (300, 1040, 200, 100)
+                    drag_offscreen phone_lock_drag_position
+                    dragged phone_lock_dragged
+                    snapped phone_lock_snapped
+
+                    fixed:
+                        xysize (800, 1199)
+
+                        # A second wallpaper travels with the lock layer. This
+                        # makes the entire page follow the finger, not only the
+                        # white home-indicator line.
+                        add "pWallpaper"
+                        add "lockScreenGray"
+
+                        fixed at phone_lock_content_fit:
+                            xpos 152
+                            ypos 78
+                            xysize (624, 984)
+
+                            use phone_lockscreen
         else:
             # Scale only once. The old nested 480px container compressed and
             # shifted every child before this transform was applied.
@@ -345,26 +396,16 @@ screen phone_lockscreen():
                 text "●" xpos 13 ypos 7 size 27 color "#465063"
                 text "●" xpos 19 ypos 13 size 15 color "#ffffff"
 
-    draggroup:
-        xysize (624, 984)
+    fixed:
+        xpos 222
+        ypos 930
+        xysize (180, 36)
 
-        drag:
-            xpos 222
-            ypos 930
-            draggable True
-            droppable False
-            drag_raise False
-            drag_offscreen phone_unlock_drag_position
-            dragged phone_unlock_dragged
-
-            fixed:
-                xysize (180, 36)
-
-                text "━━━━━━━━":
-                    xalign 0.5
-                    yalign 0.5
-                    size 20
-                    color "#ffffff"
+        text "━━━━━━━━":
+            xalign 0.5
+            yalign 0.5
+            size 20
+            color "#ffffff"
 
 
 
