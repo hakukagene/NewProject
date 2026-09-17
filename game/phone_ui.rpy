@@ -4,7 +4,9 @@
 # without any extra image assets. The future AI client can replace
 # phone_finish_mock_reply() while keeping these screens unchanged.
 
-default phone_view = "home"
+
+default phone_view = "lock"
+default phone_unlocked = False
 default phone_chat_input = ""
 default sara_unread_messages = 2
 default sara_is_typing = False
@@ -81,8 +83,10 @@ init python:
 
 transform phone_appear:
     alpha 0.0
-    zoom 0.96
-    ease 0.18 alpha 1.0 zoom 1.0
+    zoom 0.85
+    ease 0.18 alpha 1.0 zoom 0.9
+
+
 
 
 style phone_text is default:
@@ -150,10 +154,15 @@ screen phone_ui():
 
     key "game_menu" action Return()
     timer 30.0 repeat True action Function(renpy.restart_interaction)
-
-    add Solid("#07111bd9")
-
-    frame at phone_appear:
+    
+    add 'pBorder' at phone_appear:
+        xalign 0.5
+        yalign 0.5
+    add 'pWallpaper' at phone_appear:
+        xalign 0.5
+        yalign 0.5
+    
+    '''frame at phone_appear:
         xalign 0.5
         yalign 0.5
         xysize (660, 1020)
@@ -168,7 +177,7 @@ screen phone_ui():
             elif phone_view == "social":
                 use phone_social
             else:
-                use phone_sara_chat
+                use phone_sara_chat'''
 
 
 screen phone_main():
