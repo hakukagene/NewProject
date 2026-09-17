@@ -251,35 +251,46 @@ screen phone_ui():
 
                 use phone_main
 
-            draggroup:
-                xysize (800, 1199)
+            # Clip the moving page to the wallpaper's 492x1048 inner bounds.
+            # This prevents it from escaping above or below the phone while
+            # preserving the live swipe and snap-back animation.
+            fixed:
+                xpos 152
+                ypos 78
+                xysize (492, 1048)
+                clipping True
 
-                drag:
-                    xpos 0
-                    ypos 0
-                    draggable True
-                    droppable False
-                    drag_raise False
-                    drag_handle (300, 1040, 200, 100)
-                    drag_offscreen phone_lock_drag_position
-                    dragged phone_lock_dragged
-                    snapped phone_lock_snapped
+                draggroup:
+                    xpos -152
+                    ypos -78
+                    xysize (800, 1199)
 
-                    fixed:
-                        xysize (800, 1199)
+                    drag:
+                        xpos 0
+                        ypos 0
+                        draggable True
+                        droppable False
+                        drag_raise False
+                        drag_handle (300, 1040, 200, 100)
+                        drag_offscreen phone_lock_drag_position
+                        dragged phone_lock_dragged
+                        snapped phone_lock_snapped
 
-                        # A second wallpaper travels with the lock layer. This
-                        # makes the entire page follow the finger, not only the
-                        # white home-indicator line.
-                        add "pWallpaper"
-                        add "lockScreenGray"
+                        fixed:
+                            xysize (800, 1199)
 
-                        fixed at phone_lock_content_fit:
-                            xpos 152
-                            ypos 78
-                            xysize (624, 984)
+                            # A second wallpaper travels with the lock layer.
+                            # The stationary clipping area and border overlay
+                            # keep it inside the physical screen opening.
+                            add "pWallpaper"
+                            add "lockScreenGray"
 
-                            use phone_lockscreen
+                            fixed at phone_lock_content_fit:
+                                xpos 152
+                                ypos 78
+                                xysize (624, 984)
+
+                                use phone_lockscreen
         else:
             # Scale only once. The old nested 480px container compressed and
             # shifted every child before this transform was applied.
@@ -294,6 +305,10 @@ screen phone_ui():
                     use phone_social
                 else:
                     use phone_sara_chat
+
+        # Keep the bezel, rounded corners, and notch stationary above every
+        # moving page. Transparent screen pixels remain fully interactive.
+        add "pBorderOverlay"
 
 
 screen phone_lockscreen():
