@@ -197,16 +197,24 @@ screen phone_status_bar(dark=False):
 
     fixed:
         xysize (624, 42)
-
-        text "Mobicom":
-            xpos 42
-            yalign 0.5
-            size 17
-            bold True
-            color status_color
+        if(phone_view == "lock"):
+            text "Mobicom":
+                xpos 42
+                yalign 0.5
+                size 17
+                bold True
+                color status_color
+        else:
+            text "[phone_current_time()]":
+                xpos 42
+                yalign 0.5
+                size 17
+                bold True
+                color status_color
+        
 
         hbox:
-            xpos 602
+            xpos 590
             xanchor 1.0
             yalign 0.5
             spacing 8
@@ -481,31 +489,9 @@ screen phone_main():
             size 38
             bold True
 
-    frame:
-        xpos 32
-        ypos 190
-        xysize (560, 112)
-        padding (24, 18)
-        background Solid("#ffffff22")
-
-        hbox:
-            spacing 20
-            yalign 0.5
-
-            fixed:
-                xysize (68, 53)
-                add "pHomeStoryIcon"
-                text "S" style "phone_icon_text" xalign 0.5 yalign 0.5
-
-            vbox:
-                yalign 0.5
-                spacing 4
-                text "Сара шинэ story орууллаа" style "phone_light_text" size 21 bold True
-                text "5 минутын өмнө" style "phone_light_text" size 17 color "#ddd6fe"
-
     grid 3 2:
         xpos 37
-        ypos 355
+        ypos 200
         xspacing 42
         yspacing 38
 

@@ -48,3 +48,13 @@ image pHomeGalleryIcon = AlphaMask(Solid("#ec4899", xysize=(84, 66)), "images/ph
 image pHomeNotesIcon = AlphaMask(Solid("#f59e0b", xysize=(84, 66)), "images/phoneUI/home_app_icon_mask.svg")
 image pHomeSettingsIcon = AlphaMask(Solid("#64748b", xysize=(84, 66)), "images/phoneUI/home_app_icon_mask.svg")
 image pHomeStoryIcon = Transform("pHomeNotesIcon", xysize=(68, 53))
+
+
+
+
+
+#moment application icons
+image pHome = Transform("images/phoneUI/Momenticon/home.png", xysize=((50, 40)))
+image pDM = Transform("images/phoneUI/Momenticon/dm.png", xysize=((50, 40)))
+image pComment = Transform("images/phoneUI/Momenticon/comment.png", xysize=((50, 40)))
+image pProfile = Transform("images/phoneUI/Momenticon/profile.png", xysize=((50, 40)))

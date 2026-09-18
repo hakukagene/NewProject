@@ -361,24 +361,18 @@ screen moment_bottom_nav(active="home"):
         background Solid(theme["surface"])
 
         hbox:
+            xpos 40
+            ypos 10
             spacing 2
 
-            textbutton "HOME":
+            imagebutton:
+                idle "pHome"
                 xysize (118, 54)
-                text_size 14
-                text_bold active == "home"
-                text_color (theme["accent_alt"] if active == "home" else theme["muted"])
-                text_hover_color theme["accent"]
-                background None
                 action SetVariable("phone_view", "social")
 
-            textbutton "DM":
+            imagebutton:
+                idle "pDM"
                 xysize (118, 54)
-                text_size 14
-                text_bold active == "dm"
-                text_color (theme["accent_alt"] if active == "dm" else theme["muted"])
-                text_hover_color theme["accent"]
-                background None
                 action Function(phone_open_chat)
 
             textbutton "CLUES":
