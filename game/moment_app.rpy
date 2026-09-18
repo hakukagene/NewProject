@@ -493,21 +493,26 @@ screen moment_page_header(title, back_target="social", right_label=None, right_t
 screen moment_nav_button(icon_path, target, selected=False, badge=0):
     $ theme = moment_theme_colors()
     $ icon_color = theme["accent_alt"] if selected else theme["muted"]
+    $ button_width = 144
+    $ badge_x = button_width - 36
 
     button:
-        xysize (118, 54)
+        xysize (button_width, 54)
         padding (0, 0)
         background None
         hover_background None
         action SetVariable("phone_view", target)
 
         fixed:
-            xysize (118, 54)
+            xysize (button_width, 54)
 
             if selected:
-                add AlphaMask(
-                    Solid(theme["accent"] + "24", xysize=(118, 54)),
-                    "images/phoneUI/Momenticon/nav_pill_mask.svg",
+                add Transform(
+                    AlphaMask(
+                        Solid(theme["accent"] + "24", xysize=(118, 54)),
+                        "images/phoneUI/Momenticon/nav_pill_mask.svg",
+                    ),
+                    xysize=(button_width, 54),
                 )
 
             add Transform(
@@ -522,7 +527,7 @@ screen moment_nav_button(icon_path, target, selected=False, badge=0):
 
             if badge:
                 frame:
-                    xpos 79
+                    xpos badge_x
                     ypos 5
                     xysize (24, 24)
                     padding (0, 0)
@@ -537,22 +542,16 @@ screen moment_bottom_nav(active="home"):
         xpos 0
         ypos 912
         xysize (624, 72)
-        padding (13, 9)
+        padding (16, 9)
         background Solid(theme["surface"])
 
         hbox:
-            spacing 2
+            spacing 5
 
             use moment_nav_button(
                 "images/phoneUI/Momenticon/home.png",
                 "social",
                 selected=active == "home",
-            )
-            use moment_nav_button(
-                "images/phoneUI/Momenticon/like.png",
-                "notifications",
-                selected=active == "notifications",
-                badge=moment_unread_count(),
             )
             use moment_nav_button(
                 "images/phoneUI/Momenticon/dm.png",
@@ -570,6 +569,28 @@ screen moment_bottom_nav(active="home"):
                 "profile",
                 selected=active == "profile",
             )
+
+
+screen moment_composer_placeholder(label, button_action, button_x, accent=False):
+    $ theme = moment_theme_colors()
+    $ placeholder_bg = theme["accent"] if accent else theme["line"]
+    $ placeholder_text = "#ffffff" if accent else theme["text"]
+
+    button:
+        xpos button_x
+        ypos 20
+        xysize (50, 50)
+        padding (0, 0)
+        background Solid(placeholder_bg)
+        hover_background Solid(theme["accent_alt"])
+        action button_action
+
+        text label:
+            xalign 0.5
+            yalign 0.5
+            size 11
+            bold True
+            color placeholder_text
 
 
 screen moment_story_item(label, initial, ring_color, target=None, locked=False):
@@ -656,7 +677,7 @@ screen phone_moment_feed():
             color theme["hot"]
 
         textbutton "STYLE":
-            xpos 342
+            xpos 414
             ypos 22
             xysize (72, 50)
             text_size 12
@@ -665,35 +686,36 @@ screen phone_moment_feed():
             background None
             action SetVariable("phone_view", "moment_settings")
 
-        textbutton "ALERT":
-            xpos 418
-            ypos 22
-            xysize (82, 50)
-            text_size 12
-            text_color theme["text"]
-            text_hover_color theme["accent"]
+        button:
+            xpos 512
+            ypos 15
+            xysize (82, 64)
+            padding (0, 0)
             background None
+            hover_background Solid(theme["surface_alt"])
             action SetVariable("phone_view", "notifications")
 
-        if unread:
-            frame:
-                xpos 480
-                ypos 14
-                xysize (25, 25)
-                padding (0, 0)
-                background Solid(theme["hot"])
-                text "[unread]" xalign 0.5 yalign 0.5 size 12 bold True color "#ffffff"
+            fixed:
+                xysize (82, 64)
 
-        textbutton "DM":
-            xpos 515
-            ypos 22
-            xysize (80, 50)
-            text_size 15
-            text_bold True
-            text_color theme["text"]
-            text_hover_color theme["accent_alt"]
-            background None
-            action Function(moment_open_dm_inbox)
+                add Transform(
+                    AlphaMask(
+                        Solid(theme["text"], xysize=(512, 512)),
+                        "images/phoneUI/Momenticon/like.png",
+                    ),
+                    xpos=18,
+                    ypos=17,
+                    xysize=(42, 34),
+                )
+
+                if unread:
+                    frame:
+                        xpos 53
+                        ypos 4
+                        xysize (25, 25)
+                        padding (0, 0)
+                        background Solid(theme["hot"])
+                        text "[unread]" xalign 0.5 yalign 0.5 size 12 bold True color "#ffffff"
 
         add Solid(theme["line"]) ypos 98 ysize 2
 
@@ -1834,6 +1856,9 @@ screen phone_moment_chat():
     $ active_is_sara = moment_active_contact == "sara"
     $ active_typing = active_is_sara and sara_is_typing
     $ typing_text = "%s бичиж байна..." % contact["name"]
+    $ can_send = bool(phone_chat_input.strip()) and not active_typing
+    $ final_button_label = "SEND" if can_send else "+"
+    $ final_button_action = Function(moment_send_active_dm) if can_send else Notify("Attachment menu дараагийн шатанд нэмэгдэнэ.")
 
     add Solid(theme["bg"])
     use phone_status_bar(dark=theme["status_light"])
@@ -2009,36 +2034,69 @@ screen phone_moment_chat():
         xpos 0
         ypos 892
         xysize (624, 92)
-        padding (12, 19)
+        padding (0, 0)
         background Solid(theme["surface"])
 
-        hbox:
-            spacing 8
+        fixed:
+            xysize (624, 92)
 
-            frame:
-                xysize (478, 54)
-                padding (15, 8)
-                background Solid(theme["surface_alt"])
+            add Transform(
+                AlphaMask(
+                    Solid(theme["surface_alt"], xysize=(118, 54)),
+                    "images/phoneUI/Momenticon/nav_pill_mask.svg",
+                ),
+                xpos=12,
+                ypos=13,
+                xysize=(600, 66),
+            )
 
-                input:
-                    value VariableInputValue("phone_chat_input")
-                    length 180
-                    xsize 445
-                    yalign 0.5
+            # Replace these labeled square placeholders with icon assets later.
+            use moment_composer_placeholder(
+                "CAM",
+                Notify("Camera дараагийн шатанд нэмэгдэнэ."),
+                20,
+                accent=True,
+            )
+
+            if not phone_chat_input:
+                text "Message...":
+                    xpos 84
+                    ypos 34
                     size 18
-                    color theme["text"]
-                    caret Solid(theme["accent_alt"])
-                    default_focus True
+                    color theme["muted"]
 
-            textbutton "ИЛГЭЭХ":
-                xysize (112, 54)
-                text_size 14
-                text_bold True
-                text_color "#ffffff"
-                background Solid(theme["accent"])
-                hover_background Solid(theme["accent_alt"])
-                sensitive bool(phone_chat_input.strip()) and not active_typing
-                action Function(moment_send_active_dm)
+            input:
+                xpos 84
+                ypos 31
+                value VariableInputValue("phone_chat_input")
+                length 180
+                xsize 238
+                size 18
+                color theme["text"]
+                caret Solid(theme["accent_alt"])
+                default_focus True
+
+            use moment_composer_placeholder(
+                "MIC",
+                Notify("Voice message дараагийн шатанд нэмэгдэнэ."),
+                330,
+            )
+            use moment_composer_placeholder(
+                "PIC",
+                Notify("Gallery дараагийн шатанд нэмэгдэнэ."),
+                390,
+            )
+            use moment_composer_placeholder(
+                "STK",
+                Notify("Sticker дараагийн шатанд нэмэгдэнэ."),
+                450,
+            )
+            use moment_composer_placeholder(
+                final_button_label,
+                final_button_action,
+                510,
+                accent=can_send,
+            )
 
 
 screen phone_moment_profile():
