@@ -12,6 +12,27 @@ default moment_found_clues = []
 default moment_hidden_post_unlocked = False
 default moment_hidden_post_viewed = False
 default moment_selected_location = "lake"
+default moment_active_contact = "sara"
+default moment_profile_handle = "tsogoo.player"
+default moment_profile_name = "Цогтоо"
+default moment_profile_bio = "Нууцлаг аялал, дурсамж, ойр хүмүүс."
+default moment_contact_unread = {
+    "sara": 2,
+    "misheel": 0,
+    "temuulen": 1,
+    "class_chat": 0,
+}
+default moment_other_dm_messages = {
+    "misheel": [
+        {"sender": "contact", "text": "Маргаашийн хичээл хэдээс билээ?", "time": "14:32"},
+    ],
+    "temuulen": [
+        {"sender": "contact", "text": "Шөнийн зургийг харсан уу?", "time": "13:18"},
+    ],
+    "class_chat": [
+        {"sender": "contact", "text": "Аяллын зургуудыг энд оруулаарай.", "time": "12:04"},
+    ],
+}
 default moment_relationship_events = [
     "Сара таныг дагасан · +3",
     "Нуурын аяллын дурсамж · +5",
@@ -100,6 +121,48 @@ init python:
         },
     }
 
+    MOMENT_CONTACT_ORDER = (
+        "sara",
+        "misheel",
+        "temuulen",
+        "class_chat",
+    )
+
+    MOMENT_CONTACTS = {
+        "sara": {
+            "name": "Сара",
+            "handle": "sara.light",
+            "initial": "S",
+            "color": "#ff3d71",
+            "preview": "Маргааш дахиад очвол ямар вэ?",
+            "status": "Идэвхтэй байна",
+        },
+        "misheel": {
+            "name": "Мишээл",
+            "handle": "misheel.qqq",
+            "initial": "M",
+            "color": "#8b5cf6",
+            "preview": "Маргаашийн хичээл хэдээс билээ?",
+            "status": "Seen 29m ago",
+        },
+        "temuulen": {
+            "name": "Тэмүүжин",
+            "handle": "temuulen.jpg",
+            "initial": "T",
+            "color": "#22d3ee",
+            "preview": "Шөнийн зургийг харсан уу?",
+            "status": "Sent 44m ago",
+        },
+        "class_chat": {
+            "name": "Манай анги",
+            "handle": "class.room",
+            "initial": "A",
+            "color": "#34d399",
+            "preview": "Аяллын зургуудыг энд оруулаарай.",
+            "status": "4 хүн идэвхтэй",
+        },
+    }
+
 
     def moment_theme_colors():
         return MOMENT_THEMES.get(
@@ -145,6 +208,53 @@ init python:
             1 for item in renpy.store.moment_notifications
             if not item.get("read", False)
         )
+
+
+    def moment_dm_unread_count():
+        unread = dict(renpy.store.moment_contact_unread)
+        unread["sara"] = max(
+            unread.get("sara", 0),
+            renpy.store.sara_unread_messages,
+        )
+        return sum(unread.values())
+
+
+    def moment_active_contact_data():
+        return MOMENT_CONTACTS.get(
+            renpy.store.moment_active_contact,
+            MOMENT_CONTACTS["sara"],
+        )
+
+
+    def moment_active_messages():
+        if renpy.store.moment_active_contact == "sara":
+            return renpy.store.sara_messages
+
+        return renpy.store.moment_other_dm_messages.get(
+            renpy.store.moment_active_contact,
+            [],
+        )
+
+
+    def moment_open_dm_inbox():
+        renpy.store.phone_view = "dm"
+        renpy.restart_interaction()
+
+
+    def moment_open_contact(contact_id):
+        if contact_id not in MOMENT_CONTACTS:
+            return
+
+        renpy.store.moment_active_contact = contact_id
+        unread = dict(renpy.store.moment_contact_unread)
+        unread[contact_id] = 0
+        renpy.store.moment_contact_unread = unread
+
+        if contact_id == "sara":
+            renpy.store.sara_unread_messages = 0
+
+        renpy.store.phone_view = "chat"
+        renpy.restart_interaction()
 
 
     def moment_add_notification(title, body, target="social", notice_id=None):
@@ -199,6 +309,7 @@ init python:
 
     def moment_reply_story(reply_text, relationship_points):
         if renpy.store.moment_story_replied:
+            renpy.store.moment_active_contact = "sara"
             renpy.store.phone_view = "chat"
             renpy.store.sara_unread_messages = 0
             renpy.restart_interaction()
@@ -228,6 +339,7 @@ init python:
             "story_reply_result",
         )
         renpy.store.sara_unread_messages = 0
+        renpy.store.moment_active_contact = "sara"
         renpy.store.phone_view = "chat"
         renpy.restart_interaction()
 
@@ -248,7 +360,7 @@ init python:
         moment_add_notification(
             "Шинэ photo clue",
             clue["title"] + " clue цуглуулгад нэмэгдлээ.",
-            "clues",
+            "profile",
             "clue_%s" % clue_id,
         )
         moment_refresh_hidden_post()
@@ -309,6 +421,34 @@ init python:
         moment_adjust_relationship(1, "Саратай DM бичсэн")
 
 
+    def moment_send_active_dm():
+        if renpy.store.moment_active_contact == "sara":
+            moment_send_dm()
+            return
+
+        message = renpy.store.phone_chat_input.strip()
+        if not message:
+            return
+
+        contact_id = renpy.store.moment_active_contact
+        all_messages = dict(renpy.store.moment_other_dm_messages)
+        thread = list(all_messages.get(contact_id, []))
+        thread.append({
+            "sender": "player",
+            "text": message,
+            "time": phone_current_time(),
+        })
+        thread.append({
+            "sender": "contact",
+            "text": "За, ойлголоо. Дараа дэлгэрэнгүй ярья.",
+            "time": phone_current_time(),
+        })
+        all_messages[contact_id] = thread
+        renpy.store.moment_other_dm_messages = all_messages
+        renpy.store.phone_chat_input = ""
+        renpy.restart_interaction()
+
+
 screen moment_page_header(title, back_target="social", right_label=None, right_target=None):
     $ theme = moment_theme_colors()
 
@@ -350,6 +490,46 @@ screen moment_page_header(title, back_target="social", right_label=None, right_t
                 action SetVariable("phone_view", right_target)
 
 
+screen moment_nav_button(icon_path, target, selected=False, badge=0):
+    $ theme = moment_theme_colors()
+    $ icon_color = theme["accent_alt"] if selected else theme["muted"]
+
+    button:
+        xysize (118, 54)
+        padding (0, 0)
+        background None
+        hover_background None
+        action SetVariable("phone_view", target)
+
+        fixed:
+            xysize (118, 54)
+
+            if selected:
+                add AlphaMask(
+                    Solid(theme["accent"] + "24", xysize=(118, 54)),
+                    "images/phoneUI/Momenticon/nav_pill_mask.svg",
+                )
+
+            add Transform(
+                AlphaMask(
+                    Solid(icon_color, xysize=(512, 512)),
+                    icon_path,
+                ),
+                xysize=(42, 34),
+                xalign=0.5,
+                yalign=0.5,
+            )
+
+            if badge:
+                frame:
+                    xpos 79
+                    ypos 5
+                    xysize (24, 24)
+                    padding (0, 0)
+                    background Solid(theme["hot"])
+                    text "[badge]" xalign 0.5 yalign 0.5 size 11 bold True color "#ffffff"
+
+
 screen moment_bottom_nav(active="home"):
     $ theme = moment_theme_colors()
 
@@ -357,50 +537,39 @@ screen moment_bottom_nav(active="home"):
         xpos 0
         ypos 912
         xysize (624, 72)
-        padding (10, 8)
+        padding (13, 9)
         background Solid(theme["surface"])
 
         hbox:
-            xpos 40
-            ypos 10
             spacing 2
 
-            imagebutton:
-                idle "pHome"
-                xysize (118, 54)
-                action SetVariable("phone_view", "social")
-
-            imagebutton:
-                idle "pDM"
-                xysize (118, 54)
-                action Function(phone_open_chat)
-
-            textbutton "CLUES":
-                xysize (118, 54)
-                text_size 14
-                text_bold active == "clues"
-                text_color (theme["accent_alt"] if active == "clues" else theme["muted"])
-                text_hover_color theme["accent"]
-                background None
-                action SetVariable("phone_view", "clues")
-
-            textbutton "MAP":
-                xysize (118, 54)
-                text_size 14
-                text_bold active == "location"
-                text_color (theme["accent_alt"] if active == "location" else theme["muted"])
-                text_hover_color theme["accent"]
-                background None
-                action SetVariable("phone_view", "location")
-
-            textbutton "BOND":
-                xysize (118, 54)
-                text_size 14
-                text_bold active == "relationship"
-                text_color (theme["accent_alt"] if active == "relationship" else theme["muted"])
-                text_hover_color theme["accent"]
-                background None
-                action SetVariable("phone_view", "relationship")
+            use moment_nav_button(
+                "images/phoneUI/Momenticon/home.png",
+                "social",
+                selected=active == "home",
+            )
+            use moment_nav_button(
+                "images/phoneUI/Momenticon/like.png",
+                "notifications",
+                selected=active == "notifications",
+                badge=moment_unread_count(),
+            )
+            use moment_nav_button(
+                "images/phoneUI/Momenticon/dm.png",
+                "dm",
+                selected=active == "dm",
+                badge=moment_dm_unread_count(),
+            )
+            use moment_nav_button(
+                "images/phoneUI/Momenticon/comment.png",
+                "relationship",
+                selected=active == "relationship",
+            )
+            use moment_nav_button(
+                "images/phoneUI/Momenticon/profile.png",
+                "profile",
+                selected=active == "profile",
+            )
 
 
 screen moment_story_item(label, initial, ring_color, target=None, locked=False):
@@ -424,8 +593,22 @@ screen moment_story_item(label, initial, ring_color, target=None, locked=False):
 
             fixed:
                 xysize (82, 82)
-                text "●" xalign 0.5 yalign 0.5 size 82 color ring_color
-                text "●" xalign 0.5 yalign 0.5 size 70 color theme["surface_alt"]
+                add Transform(
+                    AlphaMask(
+                        Solid(ring_color, xysize=(100, 100)),
+                        "images/phoneUI/Momenticon/story_ring_mask.svg",
+                    ),
+                    xysize=(82, 82),
+                )
+                add Transform(
+                    AlphaMask(
+                        Solid(theme["surface_alt"], xysize=(100, 100)),
+                        "images/phoneUI/Momenticon/circle_mask.svg",
+                    ),
+                    xpos=7,
+                    ypos=7,
+                    xysize=(68, 68),
+                )
                 text initial xalign 0.5 yalign 0.5 size 24 bold True color theme["text"]
 
                 if locked:
@@ -510,7 +693,7 @@ screen phone_moment_feed():
             text_color theme["text"]
             text_hover_color theme["accent_alt"]
             background None
-            action Function(phone_open_chat)
+            action Function(moment_open_dm_inbox)
 
         add Solid(theme["line"]) ypos 98 ysize 2
 
@@ -584,10 +767,7 @@ screen phone_moment_feed():
                     text_color theme["accent_alt"]
                     text_hover_color theme["accent"]
                     background None
-                    action [
-                        SetVariable("moment_selected_location", "lake"),
-                        SetVariable("phone_view", "location"),
-                    ]
+                    action Notify("Нуурын эрэг · Сарагийн post")
                 text "•••" xpos 588 xanchor 1.0 ypos 16 size 20 color theme["muted"]
 
             fixed:
@@ -636,17 +816,43 @@ screen phone_moment_feed():
                 xysize (624, 70)
                 add Solid(theme["surface"])
 
-                text "♥" xpos 22 yalign 0.5 size 35 color theme["hot"]
+                add Transform(
+                    AlphaMask(
+                        Solid(theme["hot"], xysize=(512, 512)),
+                        "images/phoneUI/Momenticon/like.png",
+                    ),
+                    xpos=22,
+                    ypos=19,
+                    xysize=(38, 31),
+                )
                 text "2.4K" xpos 65 yalign 0.5 size 18 color theme["text"]
-                text "COMMENT 126" xpos 145 yalign 0.5 size 15 color theme["text"]
-                textbutton "DM":
-                    xpos 538
-                    yalign 0.5
-                    text_size 16
-                    text_bold True
-                    text_color theme["accent_alt"]
+                add Transform(
+                    AlphaMask(
+                        Solid(theme["text"], xysize=(512, 512)),
+                        "images/phoneUI/Momenticon/comment.png",
+                    ),
+                    xpos=145,
+                    ypos=20,
+                    xysize=(36, 29),
+                )
+                text "126" xpos 187 yalign 0.5 size 16 color theme["text"]
+                button:
+                    xpos 522
+                    ypos 8
+                    xysize (72, 54)
+                    padding (0, 0)
                     background None
-                    action Function(phone_open_chat)
+                    action Function(moment_open_contact, "sara")
+
+                    add Transform(
+                        AlphaMask(
+                            Solid(theme["accent_alt"], xysize=(512, 512)),
+                            "images/phoneUI/Momenticon/dm.png",
+                        ),
+                        xalign=0.5,
+                        yalign=0.5,
+                        xysize=(42, 34),
+                    )
 
             frame:
                 xfill True
@@ -911,7 +1117,7 @@ screen phone_moment_notifications():
         xpos 0
         ypos 176
         xsize 624
-        ysize 808
+        ysize 736
         mousewheel True
         draggable True
         scrollbars None
@@ -965,6 +1171,8 @@ screen phone_moment_notifications():
                                 xmaximum 490
                                 size 15
                                 color theme["muted"]
+
+    use moment_bottom_nav("notifications")
 
 
 screen phone_moment_settings():
@@ -1046,7 +1254,7 @@ screen phone_moment_relationship():
     $ relationship_width = int(540 * moment_relationship / 100.0)
 
     add Solid(theme["bg"])
-    use moment_page_header("Relationship", back_target="social", right_label="DM", right_target="chat")
+    use moment_page_header("Relationship", back_target="social", right_label="DM", right_target="dm")
 
     fixed:
         xpos 24
@@ -1433,13 +1641,14 @@ screen phone_moment_hidden_post():
                     text_bold True
                     text_color "#ffffff"
                     background Solid(theme["accent"])
-                    action Function(phone_open_chat)
+                    action Function(moment_open_contact, "sara")
 
                 null height 30
 
 
 screen phone_moment_dm():
     $ theme = moment_theme_colors()
+    $ total_unread = moment_dm_unread_count()
 
     add Solid(theme["bg"])
     use phone_status_bar(dark=theme["status_light"])
@@ -1450,7 +1659,192 @@ screen phone_moment_dm():
         xysize (624, 82)
 
         add Solid(theme["surface"])
-        add Solid(theme["line"]) ypos 80 ysize 2
+        text "[moment_profile_handle]":
+            xalign 0.5
+            yalign 0.5
+            size 28
+            bold True
+            color theme["text"]
+        text "⌄":
+            xpos 430
+            yalign 0.5
+            size 25
+            color theme["text"]
+        textbutton "+":
+            xpos 574
+            xanchor 1.0
+            yalign 0.5
+            xysize (54, 54)
+            text_size 34
+            text_color theme["text"]
+            text_hover_color theme["accent"]
+            background None
+            action Notify("Шинэ message дараагийн шатанд нэмэгдэнэ.")
+
+    textbutton "Search messages...":
+        xpos 24
+        ypos 132
+        xysize (576, 58)
+        text_size 18
+        text_color theme["muted"]
+        text_hover_color theme["accent"]
+        background Solid(theme["surface_alt"])
+        hover_background Solid(theme["line"])
+        action Notify("DM хайлт")
+
+    frame:
+        xpos 0
+        ypos 204
+        xysize (624, 128)
+        padding (14, 5)
+        background Solid(theme["surface"])
+
+        hbox:
+            spacing 42
+
+            use moment_story_item(
+                "Таны note",
+                "+",
+                theme["accent_alt"],
+                target=None,
+            )
+            use moment_story_item(
+                "Сара",
+                "S",
+                theme["hot"],
+                target="story",
+            )
+            use moment_story_item(
+                "Мишээл",
+                "M",
+                theme["accent"],
+                target=None,
+            )
+            use moment_story_item(
+                "Тэмүүжин",
+                "T",
+                theme["accent_alt"],
+                target=None,
+            )
+
+    text "Messages":
+        xpos 24
+        ypos 350
+        size 25
+        bold True
+        color theme["text"]
+    text "Requests":
+        xpos 596
+        xanchor 1.0
+        ypos 355
+        size 17
+        bold True
+        color theme["muted"]
+
+    if total_unread:
+        text "[total_unread] unread":
+            xpos 24
+            ypos 382
+            size 13
+            color theme["hot"]
+
+    viewport:
+        xpos 0
+        ypos 410
+        xsize 624
+        ysize 502
+        mousewheel True
+        draggable True
+        scrollbars None
+
+        vbox:
+            xsize 624
+            spacing 0
+
+            for contact_id in MOMENT_CONTACT_ORDER:
+                $ contact = MOMENT_CONTACTS[contact_id]
+                $ contact_unread = (
+                    max(moment_contact_unread.get("sara", 0), sara_unread_messages)
+                    if contact_id == "sara"
+                    else moment_contact_unread.get(contact_id, 0)
+                )
+
+                button:
+                    xsize 624
+                    ysize 106
+                    padding (20, 10)
+                    background None
+                    hover_background Solid(theme["surface_alt"])
+                    action Function(moment_open_contact, contact_id)
+
+                    fixed:
+                        xysize (584, 86)
+
+                        add Transform(
+                            AlphaMask(
+                                Solid(contact["color"], xysize=(100, 100)),
+                                "images/phoneUI/Momenticon/circle_mask.svg",
+                            ),
+                            xpos=0,
+                            ypos=2,
+                            xysize=(78, 78),
+                        )
+                        text contact["initial"]:
+                            xpos 39
+                            xanchor 0.5
+                            ypos 25
+                            size 25
+                            bold True
+                            color "#ffffff"
+
+                        text contact["name"]:
+                            xpos 98
+                            ypos 7
+                            size 21
+                            bold (contact_unread > 0)
+                            color theme["text"]
+                        text contact["preview"]:
+                            xpos 98
+                            ypos 38
+                            xmaximum 400
+                            size 16
+                            color (theme["text"] if contact_unread > 0 else theme["muted"])
+                        text contact["status"]:
+                            xpos 98
+                            ypos 62
+                            size 13
+                            color theme["muted"]
+
+                        if contact_unread:
+                            frame:
+                                xpos 552
+                                ypos 28
+                                xysize (26, 26)
+                                padding (0, 0)
+                                background Solid(theme["hot"])
+                                text "[contact_unread]" xalign 0.5 yalign 0.5 size 12 bold True color "#ffffff"
+
+    use moment_bottom_nav("dm")
+
+
+screen phone_moment_chat():
+    $ theme = moment_theme_colors()
+    $ contact = moment_active_contact_data()
+    $ active_messages = moment_active_messages()
+    $ active_is_sara = moment_active_contact == "sara"
+    $ active_typing = active_is_sara and sara_is_typing
+    $ typing_text = "%s бичиж байна..." % contact["name"]
+
+    add Solid(theme["bg"])
+    use phone_status_bar(dark=theme["status_light"])
+
+    fixed:
+        xpos 0
+        ypos 42
+        xysize (624, 92)
+
+        add Solid(theme["surface"])
+        add Solid(theme["line"]) ypos 90 ysize 2
 
         textbutton "<":
             xpos 10
@@ -1460,14 +1854,22 @@ screen phone_moment_dm():
             text_color theme["text"]
             text_hover_color theme["accent"]
             background None
-            action SetVariable("phone_view", "social")
+            action SetVariable("phone_view", "dm")
 
-        text "●" xpos 66 yalign 0.5 size 58 color theme["hot"]
-        text "S" xpos 87 xanchor 0.5 yalign 0.5 size 20 bold True color "#ffffff"
-        text "Сара" xpos 124 ypos 13 size 23 bold True color theme["text"]
-        text "идэвхтэй байна" xpos 124 ypos 45 size 14 color theme["success"]
+        add Transform(
+            AlphaMask(
+                Solid(contact["color"], xysize=(100, 100)),
+                "images/phoneUI/Momenticon/circle_mask.svg",
+            ),
+            xpos=70,
+            ypos=14,
+            xysize=(62, 62),
+        )
+        text contact["initial"] xpos 101 xanchor 0.5 ypos 31 size 21 bold True color "#ffffff"
+        text contact["handle"] xpos 148 ypos 14 size 23 bold True color theme["text"]
+        text contact["status"] xpos 148 ypos 47 size 14 color theme["success"]
 
-        textbutton "BOND [moment_relationship]":
+        textbutton ("BOND [moment_relationship]" if active_is_sara else "PROFILE"):
             xpos 594
             xanchor 1.0
             yalign 0.5
@@ -1475,26 +1877,14 @@ screen phone_moment_dm():
             text_color theme["accent_alt"]
             text_hover_color theme["accent"]
             background None
-            action SetVariable("phone_view", "relationship")
-
-    fixed:
-        xpos 0
-        ypos 124
-        xysize (624, 38)
-
-        add Solid(theme["surface_alt"])
-        text "[moment_relationship_level()] · Story reply болон clue нь харилцаанд нөлөөлнө":
-            xalign 0.5
-            yalign 0.5
-            size 13
-            color theme["muted"]
+            action SetVariable("phone_view", "relationship" if active_is_sara else "profile")
 
     viewport:
         id "moment_dm_viewport"
         xpos 18
-        ypos 174
+        ypos 150
         xsize 588
-        ysize 656
+        ysize 730
         mousewheel True
         draggable True
         scrollbars None
@@ -1510,7 +1900,42 @@ screen phone_moment_dm():
                 bold True
                 color theme["muted"]
 
-            for msg in sara_messages:
+            frame:
+                xalign 1.0
+                xysize (360, 330)
+                padding (0, 0)
+                background Solid(theme["surface_alt"])
+
+                fixed:
+                    xysize (360, 330)
+                    clipping True
+
+                    add "pWallpaper" xysize (360, 540) ypos -80
+                    add Solid("#00000055")
+                    text "SHARED MOMENT":
+                        xpos 18
+                        ypos 17
+                        size 15
+                        bold True
+                        color "#ffffff"
+                    text "▶":
+                        xalign 0.5
+                        yalign 0.5
+                        size 54
+                        color "#ffffff"
+                    text contact["handle"]:
+                        xpos 18
+                        ypos 286
+                        size 18
+                        bold True
+                        color "#ffffff"
+
+            text "15:15":
+                xalign 0.5
+                size 14
+                color theme["muted"]
+
+            for msg in active_messages:
                 if msg["sender"] == "player":
                     frame:
                         xalign 1.0
@@ -1535,8 +1960,14 @@ screen phone_moment_dm():
                         fixed:
                             yalign 1.0
                             xysize (36, 36)
-                            text "●" xalign 0.5 yalign 0.5 size 36 color theme["hot"]
-                            text "S" xalign 0.5 yalign 0.5 size 14 bold True color "#ffffff"
+                            add Transform(
+                                AlphaMask(
+                                    Solid(contact["color"], xysize=(100, 100)),
+                                    "images/phoneUI/Momenticon/circle_mask.svg",
+                                ),
+                                xysize=(36, 36),
+                            )
+                            text contact["initial"] xalign 0.5 yalign 0.5 size 14 bold True color "#ffffff"
 
                         frame:
                             xmaximum 430
@@ -1552,27 +1983,33 @@ screen phone_moment_dm():
                                     size 12
                                     color theme["muted"]
 
-            if sara_is_typing:
+            if active_typing:
                 hbox:
                     spacing 9
                     fixed:
                         yalign 1.0
                         xysize (36, 36)
-                        text "●" xalign 0.5 yalign 0.5 size 36 color theme["hot"]
-                        text "S" xalign 0.5 yalign 0.5 size 14 bold True color "#ffffff"
+                        add Transform(
+                            AlphaMask(
+                                Solid(contact["color"], xysize=(100, 100)),
+                                "images/phoneUI/Momenticon/circle_mask.svg",
+                            ),
+                            xysize=(36, 36),
+                        )
+                        text contact["initial"] xalign 0.5 yalign 0.5 size 14 bold True color "#ffffff"
                     frame:
                         padding (17, 11)
                         background Solid(theme["surface_alt"])
-                        text "Сара бичиж байна..." size 16 color theme["muted"]
+                        text typing_text size 16 color theme["muted"]
 
-    if sara_is_typing:
+    if active_typing:
         timer 1.25 action Function(phone_finish_mock_reply)
 
     frame:
         xpos 0
-        ypos 840
-        xysize (624, 72)
-        padding (12, 9)
+        ypos 892
+        xysize (624, 92)
+        padding (12, 19)
         background Solid(theme["surface"])
 
         hbox:
@@ -1600,7 +2037,229 @@ screen phone_moment_dm():
                 text_color "#ffffff"
                 background Solid(theme["accent"])
                 hover_background Solid(theme["accent_alt"])
-                sensitive bool(phone_chat_input.strip()) and not sara_is_typing
-                action Function(moment_send_dm)
+                sensitive bool(phone_chat_input.strip()) and not active_typing
+                action Function(moment_send_active_dm)
 
-    use moment_bottom_nav("dm")
+
+screen phone_moment_profile():
+    $ theme = moment_theme_colors()
+
+    add Solid(theme["bg"])
+    use phone_status_bar(dark=theme["status_light"])
+
+    fixed:
+        xpos 0
+        ypos 42
+        xysize (624, 82)
+
+        add Solid(theme["surface"])
+        textbutton "+":
+            xpos 18
+            yalign 0.5
+            xysize (58, 58)
+            text_size 36
+            text_color theme["text"]
+            text_hover_color theme["accent"]
+            background None
+            action Notify("Шинэ post дараагийн шатанд нэмэгдэнэ.")
+        text "▣ [moment_profile_handle]":
+            xalign 0.5
+            yalign 0.5
+            size 24
+            bold True
+            color theme["text"]
+        textbutton "STYLE":
+            xpos 598
+            xanchor 1.0
+            yalign 0.5
+            text_size 14
+            text_color theme["text"]
+            text_hover_color theme["accent"]
+            background None
+            action SetVariable("phone_view", "moment_settings")
+
+    fixed:
+        xpos 24
+        ypos 142
+        xysize (576, 254)
+
+        add Transform(
+            AlphaMask(
+                Solid(theme["accent"], xysize=(100, 100)),
+                "images/phoneUI/Momenticon/story_ring_mask.svg",
+            ),
+            xpos=0,
+            ypos=0,
+            xysize=(116, 116),
+        )
+        add Transform(
+            AlphaMask(
+                Solid(theme["surface_alt"], xysize=(100, 100)),
+                "images/phoneUI/Momenticon/circle_mask.svg",
+            ),
+            xpos=10,
+            ypos=10,
+            xysize=(96, 96),
+        )
+        text "YOU":
+            xpos 58
+            xanchor 0.5
+            ypos 40
+            size 22
+            bold True
+            color theme["text"]
+
+        text "[moment_profile_name]":
+            xpos 142
+            ypos 8
+            size 27
+            bold True
+            color theme["text"]
+        text "@[moment_profile_handle]":
+            xpos 142
+            ypos 47
+            size 16
+            color theme["muted"]
+        text "[moment_profile_bio]":
+            xpos 142
+            ypos 78
+            xmaximum 410
+            size 16
+            color theme["text"]
+
+        hbox:
+            xpos 0
+            ypos 132
+            spacing 12
+
+            frame:
+                xysize (184, 52)
+                padding (8, 7)
+                background Solid(theme["surface_alt"])
+                text "12 POST" xalign 0.5 yalign 0.5 size 14 bold True color theme["text"]
+            frame:
+                xysize (184, 52)
+                padding (8, 7)
+                background Solid(theme["surface_alt"])
+                text "4 FRIEND" xalign 0.5 yalign 0.5 size 14 bold True color theme["text"]
+            frame:
+                xysize (184, 52)
+                padding (8, 7)
+                background Solid(theme["accent"] + "28")
+                text "[moment_relationship] BOND" xalign 0.5 yalign 0.5 size 14 bold True color theme["accent_alt"]
+
+        hbox:
+            xpos 0
+            ypos 196
+            spacing 12
+
+            textbutton "EDIT PROFILE":
+                xysize (282, 50)
+                text_size 14
+                text_bold True
+                text_color theme["text"]
+                background Solid(theme["surface_alt"])
+                hover_background Solid(theme["line"])
+                action Notify("Profile засах хэсэг дараагийн шатанд нэмэгдэнэ.")
+            textbutton "SHARE PROFILE":
+                xysize (282, 50)
+                text_size 14
+                text_bold True
+                text_color "#ffffff"
+                background Solid(theme["accent"])
+                hover_background Solid(theme["accent_alt"])
+                action Notify("@%s profile link хуулагдлаа." % moment_profile_handle)
+
+    fixed:
+        xpos 0
+        ypos 414
+        xysize (624, 58)
+
+        add Solid(theme["surface"])
+        text "▦":
+            xpos 104
+            yalign 0.5
+            size 29
+            color theme["text"]
+        text "▶":
+            xalign 0.5
+            yalign 0.5
+            size 24
+            color theme["muted"]
+        text "PROFILE":
+            xpos 520
+            xanchor 0.5
+            yalign 0.5
+            size 14
+            bold True
+            color theme["muted"]
+        add Solid(theme["accent"]) xpos 24 ypos 55 xysize (184, 3)
+
+    grid 3 2:
+        xpos 24
+        ypos 486
+        xspacing 8
+        yspacing 8
+
+        button:
+            xysize (184, 188)
+            padding (0, 0)
+            background Solid("#10233d")
+            action Notify("Post 1")
+            fixed:
+                xysize (184, 188)
+                add "pWallpaper" xysize (184, 276) ypos -45
+                add Solid("#00000024")
+                text "01" xpos 12 ypos 148 size 18 bold True color "#ffffff"
+
+        button:
+            xysize (184, 188)
+            padding (0, 0)
+            background Solid("#351249")
+            action Notify("Post 2")
+            fixed:
+                xysize (184, 188)
+                add Solid(theme["accent"] + "66")
+                text "MOMENT" xalign 0.5 yalign 0.5 size 18 bold True color "#ffffff"
+
+        button:
+            xysize (184, 188)
+            padding (0, 0)
+            background Solid("#0f3a38")
+            action Notify("Post 3")
+            fixed:
+                xysize (184, 188)
+                add Solid(theme["success"] + "55")
+                text "TRIP" xalign 0.5 yalign 0.5 size 20 bold True color "#ffffff"
+
+        button:
+            xysize (184, 188)
+            padding (0, 0)
+            background Solid("#402118")
+            action Notify("Post 4")
+            fixed:
+                xysize (184, 188)
+                add Solid("#f59e0b55")
+                text "NIGHT" xalign 0.5 yalign 0.5 size 20 bold True color "#ffffff"
+
+        button:
+            xysize (184, 188)
+            padding (0, 0)
+            background Solid("#1e1b4b")
+            action Notify("Post 5")
+            fixed:
+                xysize (184, 188)
+                add Solid(theme["accent_alt"] + "50")
+                text "TRAIN" xalign 0.5 yalign 0.5 size 20 bold True color "#ffffff"
+
+        button:
+            xysize (184, 188)
+            padding (0, 0)
+            background Solid("#311827")
+            action Notify("Post 6")
+            fixed:
+                xysize (184, 188)
+                add Solid(theme["hot"] + "48")
+                text "SECRET" xalign 0.5 yalign 0.5 size 18 bold True color "#ffffff"
+
+    use moment_bottom_nav("profile")
