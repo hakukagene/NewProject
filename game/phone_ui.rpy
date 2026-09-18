@@ -110,6 +110,23 @@ init python:
         renpy.restart_interaction()
 
 
+    def phone_open_lock_notification(contact_id="sara"):
+        """Unlock the phone and open the conversation behind the alert."""
+        renpy.store.phone_unlock_pending = False
+        renpy.store.phone_unlocked = True
+        renpy.store.moment_active_contact = contact_id
+
+        unread = dict(renpy.store.moment_contact_unread)
+        unread[contact_id] = 0
+        renpy.store.moment_contact_unread = unread
+
+        if contact_id == "sara":
+            renpy.store.sara_unread_messages = 0
+
+        renpy.store.phone_view = "chat"
+        renpy.restart_interaction()
+
+
     def phone_send_message():
         """Add the player's message without blocking the Ren'Py UI."""
         message = renpy.store.phone_chat_input.strip()
@@ -345,14 +362,14 @@ screen phone_ui():
                         use phone_moment_chat
                     elif phone_view == "story":
                         use phone_moment_story
+                    elif phone_view == "close_story":
+                        use phone_moment_close_story
                     elif phone_view == "notifications":
                         use phone_moment_notifications
                     elif phone_view == "relationship":
                         use phone_moment_relationship
                     elif phone_view == "profile":
                         use phone_moment_profile
-                    elif phone_view == "hidden_post":
-                        use phone_moment_hidden_post
                     elif phone_view == "moment_settings":
                         use phone_moment_settings
                     else:
@@ -387,46 +404,53 @@ screen phone_lockscreen():
     # Wide glass notification, proportioned like the phone reference.
     # Every label is positioned independently so a long message cannot move
     # the title or timestamp.
-    fixed:
+    button:
         xalign 0.5
         ypos 748
         xysize (592, 78)
-
-        add "pNotificationGlass"
+        padding (0, 0)
+        background None
+        hover_background None
+        action Function(phone_open_lock_notification, "sara")
 
         fixed:
-            xpos 22
-            ypos 16
-            xysize (64, 47)
+            xysize (592, 78)
 
-            add "pMomentNotificationIcon"
-            text "M":
-                xalign 0.5
-                yalign 0.5
-                size 27
+            add "pNotificationGlass"
+
+            fixed:
+                xpos 22
+                ypos 16
+                xysize (64, 47)
+
+                add "pMomentNotificationIcon"
+                text "M":
+                    xalign 0.5
+                    yalign 0.5
+                    size 27
+                    bold True
+                    color "#ffffff"
+
+            text "Moment · Сара":
+                xpos 104
+                ypos 12
+                size 18
                 bold True
                 color "#ffffff"
 
-        text "Moment · Сара":
-            xpos 104
-            ypos 12
-            size 18
-            bold True
-            color "#ffffff"
+            text "одоо":
+                xpos 562
+                xanchor 1.0
+                ypos 12
+                size 17
+                color "#e2e8f0"
 
-        text "одоо":
-            xpos 562
-            xanchor 1.0
-            ypos 12
-            size 17
-            color "#e2e8f0"
-
-        text "Маргааш дахиад очвол ямар вэ?":
-            xpos 104
-            ypos 38
-            xmaximum 454
-            size 20
-            color "#ffffff"
+            text "Маргааш дахиад очвол ямар вэ?":
+                xpos 104
+                ypos 38
+                xmaximum 454
+                size 20
+                color "#ffffff"
 
     button:
         xpos 70
