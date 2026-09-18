@@ -367,7 +367,7 @@ screen moment_bottom_nav(active="home"):
                 xysize (118, 54)
                 text_size 14
                 text_bold active == "home"
-                text_color theme["accent_alt"] if active == "home" else theme["muted"]
+                text_color (theme["accent_alt"] if active == "home" else theme["muted"])
                 text_hover_color theme["accent"]
                 background None
                 action SetVariable("phone_view", "social")
@@ -376,7 +376,7 @@ screen moment_bottom_nav(active="home"):
                 xysize (118, 54)
                 text_size 14
                 text_bold active == "dm"
-                text_color theme["accent_alt"] if active == "dm" else theme["muted"]
+                text_color (theme["accent_alt"] if active == "dm" else theme["muted"])
                 text_hover_color theme["accent"]
                 background None
                 action Function(phone_open_chat)
@@ -385,7 +385,7 @@ screen moment_bottom_nav(active="home"):
                 xysize (118, 54)
                 text_size 14
                 text_bold active == "clues"
-                text_color theme["accent_alt"] if active == "clues" else theme["muted"]
+                text_color (theme["accent_alt"] if active == "clues" else theme["muted"])
                 text_hover_color theme["accent"]
                 background None
                 action SetVariable("phone_view", "clues")
@@ -394,7 +394,7 @@ screen moment_bottom_nav(active="home"):
                 xysize (118, 54)
                 text_size 14
                 text_bold active == "location"
-                text_color theme["accent_alt"] if active == "location" else theme["muted"]
+                text_color (theme["accent_alt"] if active == "location" else theme["muted"])
                 text_hover_color theme["accent"]
                 background None
                 action SetVariable("phone_view", "location")
@@ -403,7 +403,7 @@ screen moment_bottom_nav(active="home"):
                 xysize (118, 54)
                 text_size 14
                 text_bold active == "relationship"
-                text_color theme["accent_alt"] if active == "relationship" else theme["muted"]
+                text_color (theme["accent_alt"] if active == "relationship" else theme["muted"])
                 text_hover_color theme["accent"]
                 background None
                 action SetVariable("phone_view", "relationship")
@@ -442,7 +442,7 @@ screen moment_story_item(label, initial, ring_color, target=None, locked=False):
             xmaximum 100
             text_align 0.5
             size 13
-            color theme["text"] if not locked else theme["muted"]
+            color (theme["text"] if not locked else theme["muted"])
 
 
 screen phone_moment_feed():
@@ -740,7 +740,7 @@ screen phone_moment_feed():
                     text "HIDDEN POST":
                         size 16
                         bold True
-                        color theme["hot"] if moment_hidden_post_unlocked else theme["muted"]
+                        color (theme["hot"] if moment_hidden_post_unlocked else theme["muted"])
                     text hidden_summary:
                         size 20
                         bold True
@@ -751,7 +751,7 @@ screen phone_moment_feed():
                     text hidden_action:
                         size 14
                         bold True
-                        color theme["success"] if moment_hidden_post_unlocked else theme["muted"]
+                        color (theme["success"] if moment_hidden_post_unlocked else theme["muted"])
 
             null height 24
 
@@ -1092,10 +1092,10 @@ screen phone_moment_relationship():
                 color theme["hot"]
             text "Story reply":
                 size 17
-                color theme["success"] if moment_story_replied else theme["muted"]
+                color (theme["success"] if moment_story_replied else theme["muted"])
             text "Relationship 35+":
                 size 17
-                color theme["success"] if moment_relationship >= 35 else theme["muted"]
+                color (theme["success"] if moment_relationship >= 35 else theme["muted"])
             text "Илдний тусгал photo clue":
                 size 17
                 color (
@@ -1196,7 +1196,7 @@ screen phone_moment_clues():
                             color theme["muted"]
                         text (clue["location"] if found else "Байршил нууц"):
                             size 14
-                            color theme["accent_alt"] if found else theme["muted"]
+                            color (theme["accent_alt"] if found else theme["muted"])
 
     use moment_bottom_nav("clues")
 
@@ -1223,7 +1223,7 @@ screen phone_moment_location():
         add Solid(theme["line"]) xpos 92 ypos 154 xysize (380, 4)
         add Solid(theme["line"]) xpos 46 ypos 256 xysize (466, 4)
         text "●" xpos 86 ypos 89 size 44 color theme["accent_alt"]
-        text "●" xpos 420 ypos 196 size 44 color theme["hot"] if station_known else theme["muted"]
+        text "●" xpos 420 ypos 196 size 44 color (theme["hot"] if station_known else theme["muted"])
         text "НУУР" xpos 70 ypos 133 size 14 bold True color "#ffffff"
         text "БУУДАЛ" xpos 393 ypos 241 size 14 bold True color "#ffffff"
         text "INTERACTIVE LOCATION MAP":
@@ -1254,7 +1254,7 @@ screen phone_moment_location():
             xysize (282, 62)
             text_size 15
             text_bold True
-            text_color "#ffffff" if station_known else theme["muted"]
+            text_color ("#ffffff" if station_known else theme["muted"])
             background Solid(
                 theme["hot"]
                 if moment_selected_location == "station" and station_known
