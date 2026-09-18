@@ -329,9 +329,25 @@ screen phone_ui():
                     xysize (624, 984)
 
                     if phone_view == "social":
-                        use phone_social
+                        use phone_moment_feed
+                    elif phone_view == "chat":
+                        use phone_moment_dm
+                    elif phone_view == "story":
+                        use phone_moment_story
+                    elif phone_view == "notifications":
+                        use phone_moment_notifications
+                    elif phone_view == "relationship":
+                        use phone_moment_relationship
+                    elif phone_view == "clues":
+                        use phone_moment_clues
+                    elif phone_view == "location":
+                        use phone_moment_location
+                    elif phone_view == "hidden_post":
+                        use phone_moment_hidden_post
+                    elif phone_view == "moment_settings":
+                        use phone_moment_settings
                     else:
-                        use phone_sara_chat
+                        use phone_moment_feed
 
         # Keep the bezel, rounded corners, and notch stationary above every
         # moving page. Transparent screen pixels remain fully interactive.
@@ -505,6 +521,14 @@ screen phone_main():
                     xysize (84, 66)
                     add "pHomeMomentIcon"
                     text "M" style "phone_icon_text" xalign 0.5 yalign 0.5
+                    if moment_unread_count():
+                        frame:
+                            xalign 1.0
+                            yalign 0.0
+                            xysize (30, 30)
+                            padding (0, 0)
+                            background Solid("#ff3d71")
+                            text "[moment_unread_count()]" size 14 color "#ffffff" bold True xalign 0.5 yalign 0.5
                 text "Moment" style "phone_light_text" size 18 xalign 0.5
 
         button:
