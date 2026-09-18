@@ -104,6 +104,7 @@ init python:
 
 
     def phone_open_chat():
+        renpy.store.moment_active_contact = "sara"
         renpy.store.phone_view = "chat"
         renpy.store.sara_unread_messages = 0
         renpy.restart_interaction()
@@ -338,18 +339,18 @@ screen phone_ui():
 
                     if phone_view == "social":
                         use phone_moment_feed
-                    elif phone_view == "chat":
+                    elif phone_view == "dm":
                         use phone_moment_dm
+                    elif phone_view == "chat":
+                        use phone_moment_chat
                     elif phone_view == "story":
                         use phone_moment_story
                     elif phone_view == "notifications":
                         use phone_moment_notifications
                     elif phone_view == "relationship":
                         use phone_moment_relationship
-                    elif phone_view == "clues":
-                        use phone_moment_clues
-                    elif phone_view == "location":
-                        use phone_moment_location
+                    elif phone_view == "profile":
+                        use phone_moment_profile
                     elif phone_view == "hidden_post":
                         use phone_moment_hidden_post
                     elif phone_view == "moment_settings":
@@ -474,6 +475,7 @@ screen phone_lockscreen():
 
 screen phone_main():
     # Preserve this screen's layout bounds without covering the wallpaper.
+    $ dm_unread = moment_dm_unread_count()
     add Null(width=624, height=984)
 
     vbox:
@@ -520,7 +522,7 @@ screen phone_main():
         button:
             style "phone_button"
             xysize (150, 150)
-            action Function(phone_open_chat)
+            action SetVariable("phone_view", "dm")
             vbox:
                 xalign 0.5
                 spacing 10
@@ -528,14 +530,14 @@ screen phone_main():
                     xysize (84, 66)
                     add "pHomeChatIcon"
                     text "C" style "phone_icon_text" xalign 0.5 yalign 0.5
-                    if sara_unread_messages:
+                    if dm_unread:
                         frame:
                             xalign 1.0
                             yalign 0.0
                             xysize (30, 30)
                             padding (0, 0)
                             background Solid("#ef4444")
-                            text "[sara_unread_messages]" size 15 color "#ffffff" bold True xalign 0.5 yalign 0.5
+                            text "[dm_unread]" size 15 color "#ffffff" bold True xalign 0.5 yalign 0.5
                 text "Chat" style "phone_light_text" size 18 xalign 0.5
 
         button:
