@@ -7,6 +7,10 @@
 /game/**/*.rpyc
 /game/**/*.rpymc
 
+# Python backend cache files.
+**/__pycache__/
+**/*.pyc
+
 # Files Ren'Py can generate.
 /game/**/*.bak
 /game/**/*.new
