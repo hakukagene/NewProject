@@ -1,8 +1,8 @@
 # In-game phone UI prototype.
 #
 # This file intentionally uses only Ren'Py displayables so the prototype runs
-# without any extra image assets. The future AI client can replace
-# phone_finish_mock_reply() while keeping these screens unchanged.
+# without any extra image assets. Sara's DM now talks to the Render chatbot
+# without blocking Ren'Py's interaction thread.
 
 
 default phone_view = "lock"
@@ -11,6 +11,8 @@ default phone_unlock_pending = False
 default phone_flashlight_on = False
 default phone_chat_input = ""
 default phone_chat_scroll_pending = False
+default phone_chat_request_id = 0
+default phone_chatbot_last_error = ""
 default sara_unread_messages = 2
 default sara_is_typing = False
 default sara_messages = [
@@ -34,12 +36,15 @@ default sara_messages = [
 
 init python:
     import datetime
+    import json
+    import urllib.error
+    import urllib.request
 
 
-    PHONE_MOCK_REPLIES = (
-        "Хаха, ойлголоо. Чамтай чатлах хөгжилтэй юм аа.",
-        "Тэгж бодож байгааг чинь мэдсэнгүй. Дараа илүү дэлгэрэнгүй ярья.",
-        "За тэгье. Маргааш уулзаад үргэлжлүүлж ярилцъя.",
+    PHONE_OFFLINE_REPLIES = (
+        "Сүлжээ түр тасарчих шиг боллоо. Дахиад бичээд үзэх үү?",
+        "Мессежийг чинь харлаа. Холболт орж ирэхээр үргэлжлүүлээд ярья.",
+        "Одоохондоо сүлжээ муу байна аа. Жаахан дараа дахин бичээрэй.",
     )
 
 
@@ -58,6 +63,11 @@ init python:
             now.day,
             weekdays[now.weekday()],
         )
+
+
+    def phone_escape_chat_text(value):
+        """Display untrusted chat text without Ren'Py interpolation or tags."""
+        return str(value).replace("[", "[[").replace("{", "{{").replace("〖", "〖〖")
 
 
     PHONE_UNLOCK_DISTANCE = 300
@@ -131,7 +141,7 @@ init python:
 
 
     def phone_send_message():
-        """Add the player's message without blocking the Ren'Py UI."""
+        """Add the player's message and request Sara's reply in a worker."""
         message = renpy.store.phone_chat_input.strip()
         if not message or renpy.store.sara_is_typing:
             return
@@ -144,23 +154,122 @@ init python:
         renpy.store.phone_chat_input = ""
         renpy.store.sara_is_typing = True
         renpy.store.phone_chat_scroll_pending = True
+        renpy.store.phone_chatbot_last_error = ""
+        renpy.store.phone_chat_request_id += 1
+        request_id = renpy.store.phone_chat_request_id
+
+        history = []
+        for item in renpy.store.sara_messages[-MOMENT_CHATBOT_HISTORY_LIMIT:]:
+            sender = item.get("sender", "")
+            text = item.get("text", "")
+            if sender in ("player", "sara") and text:
+                history.append({"sender": sender, "text": text})
+
+        payload = {
+            "message": message,
+            "history": history,
+            "relationship": getattr(renpy.store, "moment_relationship", 0),
+            "story_replied": getattr(renpy.store, "moment_story_replied", False),
+            "player_name": getattr(renpy.store, "moment_profile_name", "Тоглогч"),
+        }
         renpy.restart_interaction()
+        renpy.invoke_in_thread(
+            phone_request_ai_reply,
+            request_id,
+            MOMENT_CHATBOT_API_URL,
+            MOMENT_CHATBOT_CLIENT_TOKEN,
+            MOMENT_CHATBOT_REQUEST_TIMEOUT,
+            payload,
+        )
 
 
-    def phone_finish_mock_reply():
-        """Temporary local reply; the AI endpoint will replace this later."""
-        if not renpy.store.sara_is_typing:
+    def phone_complete_ai_reply(request_id, reply=None, error=""):
+        """Apply a worker result on Ren'Py's main thread."""
+        if request_id != renpy.store.phone_chat_request_id:
             return
 
-        reply_index = len(renpy.store.sara_messages) % len(PHONE_MOCK_REPLIES)
-        renpy.store.sara_messages.append({
+        if not reply:
+            reply_index = (request_id - 1) % len(PHONE_OFFLINE_REPLIES)
+            reply = PHONE_OFFLINE_REPLIES[reply_index]
+            renpy.store.phone_chatbot_last_error = error or "unknown_error"
+            renpy.notify("Chatbot холбогдсонгүй — offline reply ашиглалаа.")
+
+        renpy.store.sara_messages = list(renpy.store.sara_messages) + [{
             "sender": "sara",
-            "text": PHONE_MOCK_REPLIES[reply_index],
+            "text": reply,
             "time": phone_current_time(),
-        })
+        }]
         renpy.store.sara_is_typing = False
         renpy.store.phone_chat_scroll_pending = True
         renpy.restart_interaction()
+
+
+    def phone_request_ai_reply(request_id, api_url, client_token, timeout, payload):
+        """Call the secure backend from Ren'Py's background thread."""
+        try:
+            if not api_url or "YOUR-RENDER-SERVICE" in api_url:
+                raise ValueError("chatbot_url_not_configured")
+
+            headers = {
+                "Content-Type": "application/json; charset=utf-8",
+                "Accept": "application/json",
+            }
+            if client_token:
+                headers["X-Game-Token"] = client_token
+
+            request = urllib.request.Request(
+                api_url,
+                data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+                headers=headers,
+                method="POST",
+            )
+            with urllib.request.urlopen(request, timeout=float(timeout)) as response:
+                raw_body = response.read(32769)
+                if len(raw_body) > 32768:
+                    raise ValueError("chatbot_response_too_large")
+
+            result = json.loads(raw_body.decode("utf-8"))
+            reply = result.get("reply", "") if isinstance(result, dict) else ""
+            if not isinstance(reply, str) or not reply.strip():
+                raise ValueError("chatbot_reply_missing")
+
+            renpy.invoke_in_main_thread(
+                phone_complete_ai_reply,
+                request_id,
+                reply.strip()[:600],
+                "",
+            )
+        except urllib.error.HTTPError as exc:
+            renpy.invoke_in_main_thread(
+                phone_complete_ai_reply,
+                request_id,
+                None,
+                "http_%s" % exc.code,
+            )
+        except urllib.error.URLError as exc:
+            renpy.invoke_in_main_thread(
+                phone_complete_ai_reply,
+                request_id,
+                None,
+                "network_%s" % getattr(exc, "reason", "error"),
+            )
+        except Exception as exc:
+            renpy.invoke_in_main_thread(
+                phone_complete_ai_reply,
+                request_id,
+                None,
+                str(exc)[:120],
+            )
+
+
+    def phone_finish_mock_reply():
+        """Manual compatibility fallback for older screens and save files."""
+        if renpy.store.sara_is_typing:
+            phone_complete_ai_reply(
+                renpy.store.phone_chat_request_id,
+                None,
+                "manual_fallback",
+            )
 
 
 transform phone_appear:
@@ -880,7 +989,7 @@ screen phone_sara_chat():
 
                         vbox:
                             spacing 5
-                            text msg["text"] style "phone_light_text" size 21
+                            text phone_escape_chat_text(msg["text"]) style "phone_light_text" size 21
                             text msg.get("time", "") style "phone_light_text" size 13 color "#ddd6fe" xalign 1.0
                 else:
                     hbox:
@@ -900,7 +1009,7 @@ screen phone_sara_chat():
 
                             vbox:
                                 spacing 5
-                                text msg["text"] style "phone_text" size 21
+                                text phone_escape_chat_text(msg["text"]) style "phone_text" size 21
                                 text msg.get("time", "") style "phone_small_text" size 13
 
             if sara_is_typing:
@@ -915,9 +1024,6 @@ screen phone_sara_chat():
                         padding (18, 12)
                         background Solid("#ffffff")
                         text "Сара бичиж байна..." style "phone_small_text" size 18
-
-    if sara_is_typing:
-        timer 1.25 action Function(phone_finish_mock_reply)
 
     frame:
         xpos 0

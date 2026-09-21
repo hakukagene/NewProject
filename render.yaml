@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: moment-chatbot
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-5-mini
+      - key: CHAT_RATE_LIMIT_PER_MINUTE
+        value: "12"

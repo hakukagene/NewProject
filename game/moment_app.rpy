@@ -2032,7 +2032,7 @@ screen phone_moment_chat():
 
                         vbox:
                             spacing 5
-                            text msg["text"]:
+                            text phone_escape_chat_text(msg["text"]):
                                 size 19
                                 color "#ffffff"
                             text msg.get("time", ""):
@@ -2069,7 +2069,7 @@ screen phone_moment_chat():
 
                             vbox:
                                 spacing 5
-                                text msg["text"]:
+                                text phone_escape_chat_text(msg["text"]):
                                     size 19
                                     color theme["text"]
                                 text msg.get("time", ""):
@@ -2110,9 +2110,6 @@ screen phone_moment_chat():
             ),
             SetVariable("phone_chat_scroll_pending", False),
         ]
-
-    if active_typing:
-        timer 1.25 action Function(phone_finish_mock_reply)
 
     frame:
         xpos 0
