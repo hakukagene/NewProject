@@ -12,6 +12,8 @@ default moment_active_contact = "sara"
 default moment_profile_handle = "tsogoo.player"
 default moment_profile_name = "Цогтоо"
 default moment_profile_bio = "Нууцлаг аялал, дурсамж, ойр хүмүүс."
+default moment_feed_carousel_index = 0
+default moment_feed_carousel_pending_index = None
 default moment_contact_unread = {
     "sara": 2,
     "misheel": 0,
@@ -47,6 +49,9 @@ default moment_notifications = [
 init python:
     MOMENT_THEME_ORDER = ("midnight", "violet", "daylight")
     MOMENT_CLOSE_FRIEND_THRESHOLD = 60
+    MOMENT_FEED_CAROUSEL_WIDTH = 624
+    MOMENT_FEED_CAROUSEL_SLIDE_COUNT = 3
+    MOMENT_FEED_CAROUSEL_SWIPE_DISTANCE = 80
     MOMENT_REMOVED_NOTIFICATION_IDS = (
         "photo_hint",
         "hidden_post_unlock",
@@ -166,6 +171,49 @@ init python:
         moment_set_theme(
             MOMENT_THEME_ORDER[(index + 1) % len(MOMENT_THEME_ORDER)]
         )
+
+
+    def moment_feed_carousel_drag_position(x, y):
+        """Keep the post gallery on its horizontal three-slide track."""
+        min_x = -(
+            (MOMENT_FEED_CAROUSEL_SLIDE_COUNT - 1)
+            * MOMENT_FEED_CAROUSEL_WIDTH
+        )
+        return min(0, max(min_x, x)), 0
+
+
+    def moment_feed_carousel_dragged(drags, drop):
+        """Snap a completed swipe to the previous or next post image."""
+        gallery = drags[0]
+        current = max(
+            0,
+            min(
+                MOMENT_FEED_CAROUSEL_SLIDE_COUNT - 1,
+                renpy.store.moment_feed_carousel_index,
+            ),
+        )
+        distance = gallery.x - gallery.start_x
+        target = current
+
+        if distance <= -MOMENT_FEED_CAROUSEL_SWIPE_DISTANCE:
+            target = min(MOMENT_FEED_CAROUSEL_SLIDE_COUNT - 1, current + 1)
+        elif distance >= MOMENT_FEED_CAROUSEL_SWIPE_DISTANCE:
+            target = max(0, current - 1)
+
+        renpy.store.moment_feed_carousel_pending_index = target
+        gallery.snap(-target * MOMENT_FEED_CAROUSEL_WIDTH, 0, 0.22)
+
+
+    def moment_feed_carousel_snapped(gallery, x, y, completed):
+        """Commit the selected slide only after the snap animation ends."""
+        pending = renpy.store.moment_feed_carousel_pending_index
+        if not completed or pending is None:
+            renpy.store.moment_feed_carousel_pending_index = None
+            return
+
+        renpy.store.moment_feed_carousel_index = pending
+        renpy.store.moment_feed_carousel_pending_index = None
+        renpy.restart_interaction()
 
 
     def moment_relationship_level():
@@ -535,14 +583,14 @@ screen moment_composer_icon(icon_path, button_action, button_x, accent=False, ic
     button:
         xpos button_x
         ypos 20
-        xysize (50, 50)
+        xysize (54, 50)
         padding (0, 0)
         background None
         hover_background None
         action button_action
 
         fixed:
-            xysize (50, 50)
+            xysize (54, 50)
 
             if accent:
                 add Transform(
@@ -550,7 +598,9 @@ screen moment_composer_icon(icon_path, button_action, button_x, accent=False, ic
                         Solid(theme["accent"], xysize=(100, 100)),
                         "images/phoneUI/Momenticon/circle_mask.svg",
                     ),
-                    xysize=(50, 50),
+                    xalign=0.5,
+                    yalign=0.5,
+                    xysize=(64, 47),
                 )
 
             add Transform(
@@ -560,8 +610,29 @@ screen moment_composer_icon(icon_path, button_action, button_x, accent=False, ic
                 ),
                 xalign=0.5,
                 yalign=0.5,
-                xysize=(30, 30),
+                xysize=(36, 27),
             )
+
+
+screen moment_avatar(initial, avatar_color, avatar_x=18, avatar_y=10, avatar_size=56, initial_size=20):
+    fixed:
+        xpos avatar_x
+        ypos avatar_y
+        xysize (avatar_size, avatar_size)
+
+        add Transform(
+            AlphaMask(
+                Solid(avatar_color, xysize=(100, 100)),
+                "images/phoneUI/Momenticon/circle_mask.svg",
+            ),
+            xysize=(avatar_size, avatar_size),
+        )
+        text initial:
+            xalign 0.5
+            yalign 0.5
+            size initial_size
+            bold True
+            color "#ffffff"
 
 
 screen moment_story_item(label, initial, ring_color, target=None, locked=False):
@@ -748,8 +819,7 @@ screen phone_moment_feed():
                 xysize (624, 78)
                 add Solid(theme["surface"])
 
-                text "●" xpos 17 yalign 0.5 size 58 color theme["hot"]
-                text "S" xpos 38 xanchor 0.5 yalign 0.5 size 20 bold True color "#ffffff"
+                use moment_avatar("S", theme["hot"], avatar_y=11)
                 text "sara.light" xpos 78 ypos 13 size 21 bold True color theme["text"]
                 text "Нуурын эрэг":
                     xpos 78
@@ -762,16 +832,60 @@ screen phone_moment_feed():
                 xysize (624, 340)
                 clipping True
 
-                add "pWallpaper" xysize (624, 936) ypos -250
-                add Solid("#02061742")
+                drag:
+                    drag_name "moment_sara_feed_carousel"
+                    xpos (-moment_feed_carousel_index * MOMENT_FEED_CAROUSEL_WIDTH)
+                    ypos 0
+                    draggable True
+                    droppable False
+                    drag_raise False
+                    drag_handle (0, 0, 1872, 340)
+                    drag_offscreen moment_feed_carousel_drag_position
+                    dragged moment_feed_carousel_dragged
+                    snapped moment_feed_carousel_snapped
 
-                text "1/3":
+                    hbox:
+                        spacing 0
+
+                        fixed:
+                            xysize (624, 340)
+                            add "pWallpaper" xysize (624, 936) ypos -250
+                            add Solid("#02061742")
+
+                        fixed:
+                            xysize (624, 340)
+                            add "pWallpaper" xysize (624, 936) ypos -360
+                            add Solid("#312e8133")
+
+                        fixed:
+                            xysize (624, 340)
+                            add "pWallpaper" xysize (624, 936) ypos -145
+                            add Solid("#0e749033")
+
+                text "[moment_feed_carousel_index + 1]/[MOMENT_FEED_CAROUSEL_SLIDE_COUNT]":
                     xpos 594
                     xanchor 1.0
                     ypos 16
                     size 15
                     bold True
                     color "#ffffff"
+
+                hbox:
+                    xalign 0.5
+                    ypos 314
+                    spacing 8
+
+                    for slide_index in range(MOMENT_FEED_CAROUSEL_SLIDE_COUNT):
+                        add Transform(
+                            AlphaMask(
+                                Solid(
+                                    "#ffffff" if slide_index == moment_feed_carousel_index else "#ffffff66",
+                                    xysize=(100, 100),
+                                ),
+                                "images/phoneUI/Momenticon/circle_mask.svg",
+                            ),
+                            xysize=(7, 7),
+                        )
 
             fixed:
                 xysize (624, 70)
@@ -837,8 +951,7 @@ screen phone_moment_feed():
                 xysize (624, 76)
                 add Solid(theme["surface"])
 
-                text "●" xpos 17 yalign 0.5 size 56 color theme["accent_alt"]
-                text "T" xpos 38 xanchor 0.5 yalign 0.5 size 20 bold True color "#ffffff"
+                use moment_avatar("T", theme["accent_alt"], avatar_y=10, avatar_size=54)
                 text "temuulen.jpg" xpos 78 ypos 13 size 20 bold True color theme["text"]
                 text "Хотын төв · 23:10" xpos 78 ypos 41 size 14 color theme["muted"]
 
@@ -871,8 +984,7 @@ screen phone_moment_feed():
                     xysize (624, 78)
                     add Solid(theme["surface"])
 
-                    text "●" xpos 17 yalign 0.5 size 58 color theme["hot"]
-                    text "S" xpos 38 xanchor 0.5 yalign 0.5 size 20 bold True color "#ffffff"
+                    use moment_avatar("S", theme["hot"], avatar_y=11)
                     text "sara.light" xpos 78 ypos 13 size 21 bold True color theme["text"]
                     text "Close Friends" xpos 78 ypos 41 size 14 bold True color theme["success"]
                     text "•••" xpos 588 xanchor 1.0 ypos 16 size 20 color theme["muted"]
@@ -1711,7 +1823,13 @@ screen phone_moment_chat():
                         xalign 1.0
                         xmaximum 448
                         padding (17, 11)
-                        background Solid(theme["accent"])
+                        background Frame(
+                            AlphaMask(
+                                Solid(theme["accent"], xysize=(86, 64)),
+                                "images/phoneUI/Momenticon/message_bubble_mask.svg",
+                            ),
+                            29, 22, 29, 22,
+                        )
 
                         vbox:
                             spacing 5
@@ -1742,7 +1860,13 @@ screen phone_moment_chat():
                         frame:
                             xmaximum 430
                             padding (17, 11)
-                            background Solid(theme["surface_alt"])
+                            background Frame(
+                                AlphaMask(
+                                    Solid(theme["surface_alt"], xysize=(86, 64)),
+                                    "images/phoneUI/Momenticon/message_bubble_mask.svg",
+                                ),
+                                29, 22, 29, 22,
+                            )
 
                             vbox:
                                 spacing 5
@@ -1769,7 +1893,13 @@ screen phone_moment_chat():
                         text contact["initial"] xalign 0.5 yalign 0.5 size 14 bold True color "#ffffff"
                     frame:
                         padding (17, 11)
-                        background Solid(theme["surface_alt"])
+                        background Frame(
+                            AlphaMask(
+                                Solid(theme["surface_alt"], xysize=(86, 64)),
+                                "images/phoneUI/Momenticon/message_bubble_mask.svg",
+                            ),
+                            29, 22, 29, 22,
+                        )
                         text typing_text size 16 color theme["muted"]
 
     if active_typing:
@@ -1787,8 +1917,8 @@ screen phone_moment_chat():
 
             add Transform(
                 AlphaMask(
-                    Solid(theme["surface_alt"], xysize=(118, 54)),
-                    "images/phoneUI/Momenticon/nav_pill_mask.svg",
+                    Solid(theme["surface_alt"], xysize=(600, 66)),
+                    "images/phoneUI/Momenticon/composer_pill_mask.svg",
                 ),
                 xpos=12,
                 ypos=13,
@@ -1818,7 +1948,7 @@ screen phone_moment_chat():
                 xsize 238
                 size 18
                 color theme["text"]
-                caret Solid(theme["accent_alt"])
+                caret Solid(theme["accent_alt"], xsize=2)
                 default_focus True
 
             use moment_composer_icon(
