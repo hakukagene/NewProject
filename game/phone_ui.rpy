@@ -10,6 +10,7 @@ default phone_unlocked = False
 default phone_unlock_pending = False
 default phone_flashlight_on = False
 default phone_chat_input = ""
+default phone_chat_scroll_pending = False
 default sara_unread_messages = 2
 default sara_is_typing = False
 default sara_messages = [
@@ -107,6 +108,7 @@ init python:
         renpy.store.moment_active_contact = "sara"
         renpy.store.phone_view = "chat"
         renpy.store.sara_unread_messages = 0
+        renpy.store.phone_chat_scroll_pending = True
         renpy.restart_interaction()
 
 
@@ -124,6 +126,7 @@ init python:
             renpy.store.sara_unread_messages = 0
 
         renpy.store.phone_view = "chat"
+        renpy.store.phone_chat_scroll_pending = True
         renpy.restart_interaction()
 
 
@@ -140,6 +143,7 @@ init python:
         })
         renpy.store.phone_chat_input = ""
         renpy.store.sara_is_typing = True
+        renpy.store.phone_chat_scroll_pending = True
         renpy.restart_interaction()
 
 
@@ -155,6 +159,7 @@ init python:
             "time": phone_current_time(),
         })
         renpy.store.sara_is_typing = False
+        renpy.store.phone_chat_scroll_pending = True
         renpy.restart_interaction()
 
 

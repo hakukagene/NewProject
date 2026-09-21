@@ -14,6 +14,8 @@ default moment_profile_name = "Цогтоо"
 default moment_profile_bio = "Нууцлаг аялал, дурсамж, ойр хүмүүс."
 default moment_feed_carousel_index = 0
 default moment_feed_carousel_pending_index = None
+default moment_story_index = 0
+default moment_close_story_index = 0
 default moment_contact_unread = {
     "sara": 2,
     "misheel": 0,
@@ -143,6 +145,47 @@ init python:
             "status": "4 хүн идэвхтэй",
         },
     }
+
+    # A photo can use a short display time, while a future video Story can set
+    # duration_seconds to its real media duration. The timer and progress bar
+    # read this value directly, so each Story advances at its own pace.
+    MOMENT_SARA_STORIES = (
+        {
+            "duration_seconds": 7.0,
+            "age": "2м",
+            "wallpaper_y": 48,
+            "tint": "#02061755",
+            "title": "Энэ газар өмнө нь харж байсан юм шиг санагдахгүй байна уу?",
+            "subtitle": "Story reply нь Сарагийн Relationship оноонд нөлөөлнө.",
+        },
+        {
+            "duration_seconds": 5.5,
+            "age": "1м",
+            "wallpaper_y": -42,
+            "tint": "#312e814d",
+            "title": "Нуурын эрэг өнөө орой бүр ч нам гүм байна.",
+            "subtitle": "Зүүн тал руу дарвал өмнөх Story, баруун тал руу дарвал дараагийн Story.",
+        },
+        {
+            "duration_seconds": 8.0,
+            "age": "одоо",
+            "wallpaper_y": -128,
+            "tint": "#0e74904d",
+            "title": "Маргааш энд дахин ирэх үү?",
+            "subtitle": "Энэ Story дуусахад дараагийн боломжтой Story автоматаар нээгдэнэ.",
+        },
+    )
+
+    MOMENT_CLOSE_FRIEND_STORIES = (
+        {
+            "duration_seconds": 9.0,
+            "age": "Close Friends",
+            "wallpaper_y": 48,
+            "tint": "#052e244d",
+            "title": "Маргаашийн аяллын төлөвлөгөөг зөвхөн ойр хүмүүстээ хуваалцлаа.",
+            "subtitle": "Чамайг ирнэ гэж найдаж байна.",
+        },
+    )
 
 
     def moment_theme_colors():
@@ -298,6 +341,84 @@ init python:
             renpy.store.sara_unread_messages = 0
 
         renpy.store.phone_view = "chat"
+        renpy.store.phone_chat_scroll_pending = True
+        renpy.restart_interaction()
+
+
+    def moment_story_safe_index(index, stories):
+        if not stories:
+            return 0
+        return max(0, min(len(stories) - 1, int(index)))
+
+
+    def moment_open_story(target="story"):
+        if target == "close_story":
+            if not moment_is_close_friend():
+                renpy.notify("Close Friends Story одоогоор нээгдээгүй.")
+                return
+            renpy.store.moment_close_story_index = 0
+        else:
+            target = "story"
+            renpy.store.moment_story_index = 0
+
+        renpy.store.phone_view = target
+        renpy.restart_interaction()
+
+
+    def moment_advance_story():
+        """Advance using the duration stored on the currently displayed Story."""
+        if renpy.store.phone_view == "story":
+            current = moment_story_safe_index(
+                renpy.store.moment_story_index,
+                MOMENT_SARA_STORIES,
+            )
+            if current + 1 < len(MOMENT_SARA_STORIES):
+                renpy.store.moment_story_index = current + 1
+            elif moment_is_close_friend():
+                renpy.store.moment_close_story_index = 0
+                renpy.store.phone_view = "close_story"
+            else:
+                renpy.store.phone_view = "social"
+        elif renpy.store.phone_view == "close_story":
+            current = moment_story_safe_index(
+                renpy.store.moment_close_story_index,
+                MOMENT_CLOSE_FRIEND_STORIES,
+            )
+            if current + 1 < len(MOMENT_CLOSE_FRIEND_STORIES):
+                renpy.store.moment_close_story_index = current + 1
+            else:
+                renpy.store.phone_view = "social"
+        else:
+            return
+
+        renpy.restart_interaction()
+
+
+    def moment_previous_story():
+        if renpy.store.phone_view == "story":
+            current = moment_story_safe_index(
+                renpy.store.moment_story_index,
+                MOMENT_SARA_STORIES,
+            )
+            if current > 0:
+                renpy.store.moment_story_index = current - 1
+            else:
+                renpy.store.phone_view = "social"
+        elif renpy.store.phone_view == "close_story":
+            current = moment_story_safe_index(
+                renpy.store.moment_close_story_index,
+                MOMENT_CLOSE_FRIEND_STORIES,
+            )
+            if current > 0:
+                renpy.store.moment_close_story_index = current - 1
+            elif MOMENT_SARA_STORIES:
+                renpy.store.moment_story_index = len(MOMENT_SARA_STORIES) - 1
+                renpy.store.phone_view = "story"
+            else:
+                renpy.store.phone_view = "social"
+        else:
+            return
+
         renpy.restart_interaction()
 
 
@@ -349,6 +470,7 @@ init python:
             renpy.store.moment_active_contact = "sara"
             renpy.store.phone_view = "chat"
             renpy.store.sara_unread_messages = 0
+            renpy.store.phone_chat_scroll_pending = True
             renpy.restart_interaction()
             return
 
@@ -378,6 +500,7 @@ init python:
         renpy.store.sara_unread_messages = 0
         renpy.store.moment_active_contact = "sara"
         renpy.store.phone_view = "chat"
+        renpy.store.phone_chat_scroll_pending = True
         renpy.restart_interaction()
 
 
@@ -412,6 +535,11 @@ init python:
         if target == "chat":
             renpy.store.moment_active_contact = "sara"
             renpy.store.sara_unread_messages = 0
+            renpy.store.phone_chat_scroll_pending = True
+        elif target == "story":
+            renpy.store.moment_story_index = 0
+        elif target == "close_story":
+            renpy.store.moment_close_story_index = 0
         renpy.store.phone_view = target
         renpy.restart_interaction()
 
@@ -450,6 +578,7 @@ init python:
         all_messages[contact_id] = thread
         renpy.store.moment_other_dm_messages = all_messages
         renpy.store.phone_chat_input = ""
+        renpy.store.phone_chat_scroll_pending = True
         renpy.restart_interaction()
 
 
@@ -649,7 +778,7 @@ screen moment_story_item(label, initial, ring_color, target=None, locked=False):
             background None
             hover_background None
             action (
-                SetVariable("phone_view", target)
+                Function(moment_open_story, target)
                 if target and not locked
                 else Notify("Энэ story одоогоор түгжээтэй.")
             )
@@ -1072,8 +1201,40 @@ screen phone_moment_feed():
     use moment_bottom_nav("home")
 
 
+transform moment_story_progress_fill(duration, target_width):
+    xsize 0
+    linear duration xsize target_width
+
+
+screen moment_story_progress_row(stories, current_index, story_duration):
+    $ story_count = max(1, len(stories))
+    $ segment_width = int((588 - ((story_count - 1) * 5)) / story_count)
+
+    hbox:
+        xpos 18
+        ypos 51
+        spacing 5
+
+        for segment in range(story_count):
+            fixed:
+                xysize (segment_width, 4)
+
+                add Solid("#ffffff55") xysize (segment_width, 4)
+
+                if segment < current_index:
+                    add Solid("#ffffff") xysize (segment_width, 4)
+                elif segment == current_index:
+                    add Solid("#ffffff"):
+                        xysize (segment_width, 4)
+                        at moment_story_progress_fill(story_duration, segment_width)
+
+
 screen phone_moment_story():
     $ theme = moment_theme_colors()
+    $ stories = MOMENT_SARA_STORIES
+    $ story_index = moment_story_safe_index(moment_story_index, stories)
+    $ story = stories[story_index]
+    $ story_duration = max(0.1, float(story.get("duration_seconds", 7.0)))
 
     add Solid("#030407")
 
@@ -1081,23 +1242,17 @@ screen phone_moment_story():
         xysize (624, 984)
         clipping True
 
-        add "pWallpaper" xysize (624, 936) ypos 48
-        add Solid("#02061755")
+        add "pWallpaper" xysize (624, 936) ypos story.get("wallpaper_y", 48)
+        add Solid(story.get("tint", "#02061755"))
         add Solid("#000000b8") ypos 678 ysize 306
 
     use phone_status_bar(dark=True)
 
-    hbox:
-        xpos 18
-        ypos 51
-        spacing 5
-
-        for segment in range(3):
-            add Solid("#ffffff" if segment == 0 else "#ffffff55") xysize (192, 4)
+    use moment_story_progress_row(stories, story_index, story_duration)
 
     text "●" xpos 18 ypos 70 size 54 color theme["hot"]
     text "S" xpos 36 xanchor 0.5 ypos 84 size 18 bold True color "#ffffff"
-    text "sara.light  ·  2м":
+    text "sara.light  ·  [story['age']]":
         xpos 72
         ypos 84
         size 18
@@ -1113,6 +1268,24 @@ screen phone_moment_story():
         background None
         action SetVariable("phone_view", "social")
 
+    button:
+        xpos 0
+        ypos 120
+        xysize (312, 400)
+        padding (0, 0)
+        background None
+        hover_background None
+        action Function(moment_previous_story)
+
+    button:
+        xpos 312
+        ypos 120
+        xysize (312, 400)
+        padding (0, 0)
+        background None
+        hover_background None
+        action Function(moment_advance_story)
+
     frame:
         xpos 24
         ypos 532
@@ -1122,11 +1295,11 @@ screen phone_moment_story():
 
         vbox:
             spacing 8
-            text "Энэ газар өмнө нь харж байсан юм шиг санагдахгүй байна уу?":
+            text story["title"]:
                 size 24
                 bold True
                 color "#ffffff"
-            text "Story reply нь Сарагийн Relationship оноонд нөлөөлнө.":
+            text story["subtitle"]:
                 size 15
                 color "#d1d5db"
 
@@ -1198,9 +1371,15 @@ screen phone_moment_story():
                         8,
                     )
 
+    timer story_duration action Function(moment_advance_story)
+
 
 screen phone_moment_close_story():
     $ theme = moment_theme_colors()
+    $ stories = MOMENT_CLOSE_FRIEND_STORIES
+    $ story_index = moment_story_safe_index(moment_close_story_index, stories)
+    $ story = stories[story_index]
+    $ story_duration = max(0.1, float(story.get("duration_seconds", 7.0)))
 
     add Solid("#030407")
 
@@ -1208,17 +1387,17 @@ screen phone_moment_close_story():
         xysize (624, 984)
         clipping True
 
-        add "pWallpaper" xysize (624, 936) ypos 48
-        add Solid("#052e244d")
+        add "pWallpaper" xysize (624, 936) ypos story.get("wallpaper_y", 48)
+        add Solid(story.get("tint", "#052e244d"))
         add Solid("#000000c4") ypos 650 ysize 334
 
     use phone_status_bar(dark=True)
 
-    add Solid("#ffffff") xpos 18 ypos 54 xysize (588, 4)
+    use moment_story_progress_row(stories, story_index, story_duration)
 
     text "●" xpos 18 ypos 70 size 54 color theme["hot"]
     text "S" xpos 36 xanchor 0.5 ypos 84 size 18 bold True color "#ffffff"
-    text "sara.light  ·  Close Friends":
+    text "sara.light  ·  [story['age']]":
         xpos 72
         ypos 84
         size 17
@@ -1234,6 +1413,24 @@ screen phone_moment_close_story():
         text_color "#ffffff"
         background None
         action SetVariable("phone_view", "social")
+
+    button:
+        xpos 0
+        ypos 120
+        xysize (312, 450)
+        padding (0, 0)
+        background None
+        hover_background None
+        action Function(moment_previous_story)
+
+    button:
+        xpos 312
+        ypos 120
+        xysize (312, 450)
+        padding (0, 0)
+        background None
+        hover_background None
+        action Function(moment_advance_story)
 
     frame:
         xpos 24
@@ -1253,15 +1450,17 @@ screen phone_moment_close_story():
         ypos 680
         xysize (576, 174)
 
-        text "Маргаашийн аяллын төлөвлөгөөг зөвхөн ойр хүмүүстээ хуваалцлаа.":
+        text story["title"]:
             xmaximum 560
             size 24
             bold True
             color "#ffffff"
-        text "Чамайг ирнэ гэж найдаж байна.":
+        text story["subtitle"]:
             ypos 78
             size 18
             color "#d1fae5"
+
+    timer story_duration action Function(moment_advance_story)
 
     textbutton "DM-ЭЭР ХАРИУЛАХ":
         xpos 24
@@ -1901,6 +2100,16 @@ screen phone_moment_chat():
                             29, 22, 29, 22,
                         )
                         text typing_text size 16 color theme["muted"]
+
+    if phone_chat_scroll_pending:
+        timer 0.01 action [
+            Scroll(
+                "moment_dm_viewport",
+                "vertical increase",
+                amount=1000000,
+            ),
+            SetVariable("phone_chat_scroll_pending", False),
+        ]
 
     if active_typing:
         timer 1.25 action Function(phone_finish_mock_reply)
