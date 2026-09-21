@@ -1,17 +1,13 @@
 # Moment social app.
 #
 # The app is intentionally data-driven so story replies, direct messages,
-# relationship progress, clues, hidden posts, notifications, and locations
+# relationship progress, close-friend content, notifications, and profiles
 # can be connected to later chapters without rebuilding the UI.
 
 
 default moment_theme = "midnight"
 default moment_relationship = 28
 default moment_story_replied = False
-default moment_found_clues = []
-default moment_hidden_post_unlocked = False
-default moment_hidden_post_viewed = False
-default moment_selected_location = "lake"
 default moment_active_contact = "sara"
 default moment_profile_handle = "tsogoo.player"
 default moment_profile_name = "Цогтоо"
@@ -45,18 +41,16 @@ default moment_notifications = [
         "target": "story",
         "read": False,
     },
-    {
-        "id": "photo_hint",
-        "title": "Зурагт нэг зүйл нуугдсан байна",
-        "body": "Сарагийн хамгийн сүүлийн post-ыг сайн ажиглаарай.",
-        "target": "social",
-        "read": False,
-    },
 ]
 
 
 init python:
     MOMENT_THEME_ORDER = ("midnight", "violet", "daylight")
+    MOMENT_CLOSE_FRIEND_THRESHOLD = 60
+    MOMENT_REMOVED_NOTIFICATION_IDS = (
+        "photo_hint",
+        "hidden_post_unlock",
+    )
 
     MOMENT_THEMES = {
         "midnight": {
@@ -100,24 +94,6 @@ init python:
             "hot": "#e11d48",
             "success": "#059669",
             "status_light": False,
-        },
-    }
-
-    MOMENT_CLUES = {
-        "blade_reflection": {
-            "title": "Илдний тусгал",
-            "description": "Сарагийн post-ын арын тусгалд хуучин буудлын цаг харагдсан.",
-            "location": "Нуурын эрэг",
-        },
-        "blue_pin": {
-            "title": "Цэнхэр байршлын тэмдэг",
-            "description": "Зургийн буланд 23:10 гэсэн цагтай нууц location pin байна.",
-            "location": "Хотын төв",
-        },
-        "station_ticket": {
-            "title": "Урагдсан тасалбар",
-            "description": "Нууц post доторх тасалбар дээр 04-р тавцан гэж бичжээ.",
-            "location": "Хуучин буудал",
         },
     }
 
@@ -203,9 +179,29 @@ init python:
         return "Танил"
 
 
+    def moment_is_close_friend():
+        return (
+            renpy.store.moment_relationship
+            >= MOMENT_CLOSE_FRIEND_THRESHOLD
+        )
+
+
+    def moment_active_notifications():
+        """Hide notifications from the removed clue/hidden-post systems."""
+        visible = []
+        for item in renpy.store.moment_notifications:
+            notice_id = item.get("id", "")
+            if notice_id in MOMENT_REMOVED_NOTIFICATION_IDS:
+                continue
+            if notice_id.startswith("clue_"):
+                continue
+            visible.append(item)
+        return visible
+
+
     def moment_unread_count():
         return sum(
-            1 for item in renpy.store.moment_notifications
+            1 for item in moment_active_notifications()
             if not item.get("read", False)
         )
 
@@ -275,23 +271,6 @@ init python:
         )
 
 
-    def moment_refresh_hidden_post():
-        can_unlock = (
-            renpy.store.moment_story_replied
-            and renpy.store.moment_relationship >= 35
-            and "blade_reflection" in renpy.store.moment_found_clues
-        )
-
-        if can_unlock and not renpy.store.moment_hidden_post_unlocked:
-            renpy.store.moment_hidden_post_unlocked = True
-            moment_add_notification(
-                "Нууц post нээгдлээ",
-                "Story reply болон photo clue хоёр шинэ post-ын түгжээг тайллаа.",
-                "hidden_post",
-                "hidden_post_unlock",
-            )
-
-
     def moment_adjust_relationship(amount, reason):
         old_value = renpy.store.moment_relationship
         new_value = max(0, min(100, old_value + amount))
@@ -304,7 +283,17 @@ init python:
                 [entry] + list(renpy.store.moment_relationship_events)
             )[:6]
 
-        moment_refresh_hidden_post()
+        crossed_close_friend = (
+            old_value < MOMENT_CLOSE_FRIEND_THRESHOLD
+            and new_value >= MOMENT_CLOSE_FRIEND_THRESHOLD
+        )
+        if crossed_close_friend:
+            moment_add_notification(
+                "Сара таныг Close Friends-д нэмлээ",
+                "Нэмэлт story болон post Moment feed-д нээгдлээ.",
+                "social",
+                "close_friends_unlocked",
+            )
 
 
     def moment_reply_story(reply_text, relationship_points):
@@ -344,33 +333,9 @@ init python:
         renpy.restart_interaction()
 
 
-    def moment_collect_clue(clue_id):
-        if clue_id not in MOMENT_CLUES:
-            return
-
-        if clue_id in renpy.store.moment_found_clues:
-            renpy.notify("Энэ clue аль хэдийн олдсон.")
-            return
-
-        renpy.store.moment_found_clues = (
-            list(renpy.store.moment_found_clues) + [clue_id]
-        )
-        clue = MOMENT_CLUES[clue_id]
-        moment_adjust_relationship(2, "Photo clue олсон")
-        moment_add_notification(
-            "Шинэ photo clue",
-            clue["title"] + " clue цуглуулгад нэмэгдлээ.",
-            "profile",
-            "clue_%s" % clue_id,
-        )
-        moment_refresh_hidden_post()
-        renpy.notify("Photo clue оллоо: %s" % clue["title"])
-        renpy.restart_interaction()
-
-
     def moment_mark_all_notifications():
         updated = []
-        for item in renpy.store.moment_notifications:
+        for item in moment_active_notifications():
             copy = dict(item)
             copy["read"] = True
             updated.append(copy)
@@ -380,12 +345,13 @@ init python:
 
 
     def moment_open_notification(index):
-        if index < 0 or index >= len(renpy.store.moment_notifications):
+        visible_notifications = moment_active_notifications()
+        if index < 0 or index >= len(visible_notifications):
             return
 
         updated = []
         target = "social"
-        for item_index, item in enumerate(renpy.store.moment_notifications):
+        for item_index, item in enumerate(visible_notifications):
             copy = dict(item)
             if item_index == index:
                 copy["read"] = True
@@ -393,22 +359,12 @@ init python:
             updated.append(copy)
 
         renpy.store.moment_notifications = updated
+        if target == "hidden_post":
+            target = "social"
+        if target == "chat":
+            renpy.store.moment_active_contact = "sara"
+            renpy.store.sara_unread_messages = 0
         renpy.store.phone_view = target
-        renpy.restart_interaction()
-
-
-    def moment_open_location(location_id):
-        renpy.store.moment_selected_location = location_id
-        renpy.restart_interaction()
-
-
-    def moment_open_hidden_post():
-        if not renpy.store.moment_hidden_post_unlocked:
-            renpy.notify("Story reply болон эхний photo clue хэрэгтэй.")
-            return
-
-        renpy.store.moment_hidden_post_viewed = True
-        renpy.store.phone_view = "hidden_post"
         renpy.restart_interaction()
 
 
@@ -571,26 +527,41 @@ screen moment_bottom_nav(active="home"):
             )
 
 
-screen moment_composer_placeholder(label, button_action, button_x, accent=False):
+screen moment_composer_icon(icon_path, button_action, button_x, accent=False, icon_crop=None):
     $ theme = moment_theme_colors()
-    $ placeholder_bg = theme["accent"] if accent else theme["line"]
-    $ placeholder_text = "#ffffff" if accent else theme["text"]
+    $ icon_color = "#ffffff" if accent else theme["text"]
+    $ icon_source = Crop(icon_crop, icon_path) if icon_crop else icon_path
 
     button:
         xpos button_x
         ypos 20
         xysize (50, 50)
         padding (0, 0)
-        background Solid(placeholder_bg)
-        hover_background Solid(theme["accent_alt"])
+        background None
+        hover_background None
         action button_action
 
-        text label:
-            xalign 0.5
-            yalign 0.5
-            size 11
-            bold True
-            color placeholder_text
+        fixed:
+            xysize (50, 50)
+
+            if accent:
+                add Transform(
+                    AlphaMask(
+                        Solid(theme["accent"], xysize=(100, 100)),
+                        "images/phoneUI/Momenticon/circle_mask.svg",
+                    ),
+                    xysize=(50, 50),
+                )
+
+            add Transform(
+                AlphaMask(
+                    Solid(icon_color, xysize=(64, 64)),
+                    Transform(icon_source, xysize=(64, 64)),
+                ),
+                xalign=0.5,
+                yalign=0.5,
+                xysize=(30, 30),
+            )
 
 
 screen moment_story_item(label, initial, ring_color, target=None, locked=False):
@@ -646,8 +617,7 @@ screen moment_story_item(label, initial, ring_color, target=None, locked=False):
 screen phone_moment_feed():
     $ theme = moment_theme_colors()
     $ unread = moment_unread_count()
-    $ hidden_summary = "Сарагийн зөвхөн дотны хүмүүст зориулсан post нээгдсэн." if moment_hidden_post_unlocked else "Story reply + Relationship 35 + Photo clue шаардлагатай."
-    $ hidden_action = "НЭЭХ" if moment_hidden_post_unlocked else "Одоогоор түгжээтэй"
+    $ close_friend = moment_is_close_friend()
 
     add Solid(theme["bg"])
     use phone_status_bar(dark=theme["status_light"])
@@ -665,7 +635,7 @@ screen phone_moment_feed():
             size 42
             bold True
             color theme["text"]
-        text "Close people. Hidden moments.":
+        text "Close people. Real moments.":
             xpos 27
             ypos 59
             size 14
@@ -753,13 +723,13 @@ screen phone_moment_feed():
                 theme["success"],
                 target=None,
             )
-            use moment_story_item(
-                "Нууц",
-                "?",
-                theme["accent"],
-                target="hidden_post",
-                locked=not moment_hidden_post_unlocked,
-            )
+            if close_friend:
+                use moment_story_item(
+                    "Close Friends",
+                    "S",
+                    theme["success"],
+                    target="close_story",
+                )
 
     viewport:
         xpos 0
@@ -774,7 +744,6 @@ screen phone_moment_feed():
             xsize 624
             spacing 2
 
-            # Sara's post contains the first interactive photo clue.
             fixed:
                 xysize (624, 78)
                 add Solid(theme["surface"])
@@ -782,14 +751,11 @@ screen phone_moment_feed():
                 text "●" xpos 17 yalign 0.5 size 58 color theme["hot"]
                 text "S" xpos 38 xanchor 0.5 yalign 0.5 size 20 bold True color "#ffffff"
                 text "sara.light" xpos 78 ypos 13 size 21 bold True color theme["text"]
-                textbutton "PIN · Нуурын эрэг":
-                    xpos 70
-                    ypos 39
-                    text_size 14
-                    text_color theme["accent_alt"]
-                    text_hover_color theme["accent"]
-                    background None
-                    action Notify("Нуурын эрэг · Сарагийн post")
+                text "Нуурын эрэг":
+                    xpos 78
+                    ypos 41
+                    size 14
+                    color theme["accent_alt"]
                 text "•••" xpos 588 xanchor 1.0 ypos 16 size 20 color theme["muted"]
 
             fixed:
@@ -798,7 +764,6 @@ screen phone_moment_feed():
 
                 add "pWallpaper" xysize (624, 936) ypos -250
                 add Solid("#02061742")
-                add Solid(theme["accent"] + "24") ypos 276 ysize 64
 
                 text "1/3":
                     xpos 594
@@ -807,32 +772,6 @@ screen phone_moment_feed():
                     size 15
                     bold True
                     color "#ffffff"
-
-                if "blade_reflection" in moment_found_clues:
-                    frame:
-                        xpos 411
-                        ypos 278
-                        xysize (190, 46)
-                        padding (10, 8)
-                        background Solid("#064e3bde")
-                        text "CLUE FOUND":
-                            xalign 0.5
-                            yalign 0.5
-                            size 14
-                            bold True
-                            color "#a7f3d0"
-                else:
-                    textbutton "PHOTO CLUE":
-                        xpos 411
-                        ypos 278
-                        xysize (190, 46)
-                        text_size 14
-                        text_bold True
-                        text_color "#ffffff"
-                        text_hover_color "#ffffff"
-                        background Solid(theme["accent"] + "e8")
-                        hover_background Solid(theme["accent_alt"] + "e8")
-                        action Function(moment_collect_clue, "blade_reflection")
 
             fixed:
                 xysize (624, 70)
@@ -894,7 +833,6 @@ screen phone_moment_feed():
                         size 14
                         color theme["muted"]
 
-            # A second post connects the feed to the location system.
             fixed:
                 xysize (624, 76)
                 add Solid(theme["surface"])
@@ -918,25 +856,6 @@ screen phone_moment_feed():
                     bold True
                     color "#ffffff"
 
-                if "blue_pin" in moment_found_clues:
-                    text "LOCATION CLUE FOUND":
-                        xpos 594
-                        xanchor 1.0
-                        ypos 199
-                        size 13
-                        bold True
-                        color "#a7f3d0"
-                else:
-                    textbutton "CHECK PIN":
-                        xpos 456
-                        ypos 184
-                        xysize (145, 42)
-                        text_size 13
-                        text_bold True
-                        text_color "#ffffff"
-                        background Solid(theme["accent_alt"] + "e8")
-                        action Function(moment_collect_clue, "blue_pin")
-
             frame:
                 xfill True
                 ysize 92
@@ -947,33 +866,94 @@ screen phone_moment_feed():
                     size 17
                     color theme["text"]
 
-            # Hidden post status is always visible so the player understands
-            # how story replies, relationship, and clues connect.
-            button:
-                xsize 624
-                ysize 180
-                padding (22, 18)
-                background Solid(theme["surface_alt"])
-                hover_background Solid(theme["accent"] + "35")
-                action Function(moment_open_hidden_post)
+            if close_friend:
+                fixed:
+                    xysize (624, 78)
+                    add Solid(theme["surface"])
 
-                vbox:
-                    spacing 9
-                    text "HIDDEN POST":
-                        size 16
+                    text "●" xpos 17 yalign 0.5 size 58 color theme["hot"]
+                    text "S" xpos 38 xanchor 0.5 yalign 0.5 size 20 bold True color "#ffffff"
+                    text "sara.light" xpos 78 ypos 13 size 21 bold True color theme["text"]
+                    text "Close Friends" xpos 78 ypos 41 size 14 bold True color theme["success"]
+                    text "•••" xpos 588 xanchor 1.0 ypos 16 size 20 color theme["muted"]
+
+                fixed:
+                    xysize (624, 340)
+                    clipping True
+
+                    add "pWallpaper" xysize (624, 936) ypos -340
+                    add Solid("#052e2466")
+                    text "CLOSE FRIENDS":
+                        xpos 22
+                        ypos 24
+                        size 17
                         bold True
-                        color (theme["hot"] if moment_hidden_post_unlocked else theme["muted"])
-                    text hidden_summary:
-                        size 20
-                        bold True
-                        color theme["text"]
-                    text "Relationship: [moment_relationship]/100":
-                        size 15
-                        color theme["accent_alt"]
-                    text hidden_action:
+                        color "#a7f3d0"
+                    text "Зөвхөн ойр хүмүүст":
+                        xpos 22
+                        ypos 52
                         size 14
-                        bold True
-                        color (theme["success"] if moment_hidden_post_unlocked else theme["muted"])
+                        color "#d1fae5"
+
+                fixed:
+                    xysize (624, 70)
+                    add Solid(theme["surface"])
+
+                    add Transform(
+                        AlphaMask(
+                            Solid(theme["hot"], xysize=(512, 512)),
+                            "images/phoneUI/Momenticon/like.png",
+                        ),
+                        xpos=22,
+                        ypos=19,
+                        xysize=(38, 31),
+                    )
+                    text "128" xpos 65 yalign 0.5 size 18 color theme["text"]
+                    add Transform(
+                        AlphaMask(
+                            Solid(theme["text"], xysize=(512, 512)),
+                            "images/phoneUI/Momenticon/comment.png",
+                        ),
+                        xpos=145,
+                        ypos=20,
+                        xysize=(36, 29),
+                    )
+                    text "18" xpos 187 yalign 0.5 size 16 color theme["text"]
+                    button:
+                        xpos 522
+                        ypos 8
+                        xysize (72, 54)
+                        padding (0, 0)
+                        background None
+                        action Function(moment_open_contact, "sara")
+
+                        add Transform(
+                            AlphaMask(
+                                Solid(theme["accent_alt"], xysize=(512, 512)),
+                                "images/phoneUI/Momenticon/dm.png",
+                            ),
+                            xalign=0.5,
+                            yalign=0.5,
+                            xysize=(42, 34),
+                        )
+
+                frame:
+                    xfill True
+                    ysize 126
+                    padding (22, 10)
+                    background Solid(theme["surface"])
+
+                    vbox:
+                        spacing 5
+                        text "{b}sara.light{/b}  Чамд л харуулахыг хүссэн мөч.":
+                            size 18
+                            color theme["text"]
+                        text "Маргаашийн аяллын жижиг төлөвлөгөөг энд үлдээлээ.":
+                            size 17
+                            color theme["text"]
+                        text "Close Friends · саяхан":
+                            size 14
+                            color theme["success"]
 
             null height 24
 
@@ -1107,9 +1087,86 @@ screen phone_moment_story():
                     )
 
 
+screen phone_moment_close_story():
+    $ theme = moment_theme_colors()
+
+    add Solid("#030407")
+
+    fixed:
+        xysize (624, 984)
+        clipping True
+
+        add "pWallpaper" xysize (624, 936) ypos 48
+        add Solid("#052e244d")
+        add Solid("#000000c4") ypos 650 ysize 334
+
+    use phone_status_bar(dark=True)
+
+    add Solid("#ffffff") xpos 18 ypos 54 xysize (588, 4)
+
+    text "●" xpos 18 ypos 70 size 54 color theme["hot"]
+    text "S" xpos 36 xanchor 0.5 ypos 84 size 18 bold True color "#ffffff"
+    text "sara.light  ·  Close Friends":
+        xpos 72
+        ypos 84
+        size 17
+        bold True
+        color "#ffffff"
+
+    textbutton "×":
+        xpos 594
+        xanchor 1.0
+        ypos 67
+        xysize (52, 52)
+        text_size 30
+        text_color "#ffffff"
+        background None
+        action SetVariable("phone_view", "social")
+
+    frame:
+        xpos 24
+        ypos 590
+        xysize (210, 44)
+        padding (12, 8)
+        background Solid("#059669e8")
+        text "CLOSE FRIENDS":
+            xalign 0.5
+            yalign 0.5
+            size 14
+            bold True
+            color "#ffffff"
+
+    fixed:
+        xpos 24
+        ypos 680
+        xysize (576, 174)
+
+        text "Маргаашийн аяллын төлөвлөгөөг зөвхөн ойр хүмүүстээ хуваалцлаа.":
+            xmaximum 560
+            size 24
+            bold True
+            color "#ffffff"
+        text "Чамайг ирнэ гэж найдаж байна.":
+            ypos 78
+            size 18
+            color "#d1fae5"
+
+    textbutton "DM-ЭЭР ХАРИУЛАХ":
+        xpos 24
+        ypos 878
+        xysize (576, 62)
+        text_size 17
+        text_bold True
+        text_color "#ffffff"
+        background Solid(theme["accent"])
+        hover_background Solid(theme["accent_alt"])
+        action Function(moment_open_contact, "sara")
+
+
 screen phone_moment_notifications():
     $ theme = moment_theme_colors()
     $ unread = moment_unread_count()
+    $ visible_notifications = moment_active_notifications()
 
     add Solid(theme["bg"])
     use moment_page_header(
@@ -1148,7 +1205,7 @@ screen phone_moment_notifications():
             xsize 624
             spacing 2
 
-            for index, notice in enumerate(moment_notifications):
+            for index, notice in enumerate(visible_notifications):
                 button:
                     xsize 624
                     ysize 112
@@ -1274,6 +1331,8 @@ screen phone_moment_settings():
 screen phone_moment_relationship():
     $ theme = moment_theme_colors()
     $ relationship_width = int(540 * moment_relationship / 100.0)
+    $ close_friend = moment_is_close_friend()
+    $ close_friend_remaining = max(0, MOMENT_CLOSE_FRIEND_THRESHOLD - moment_relationship)
 
     add Solid(theme["bg"])
     use moment_page_header("Relationship", back_target="social", right_label="DM", right_target="dm")
@@ -1294,7 +1353,7 @@ screen phone_moment_relationship():
         if relationship_width > 0:
             add Solid(theme["accent"]) xpos 18 ypos 138 xysize (relationship_width, 18)
 
-        text "Story reply, DM, clue болон сонголтууд энэ оноонд нөлөөлнө.":
+        text "Story reply, DM болон таны сонголтууд энэ оноонд нөлөөлнө.":
             xpos 18
             ypos 174
             xmaximum 540
@@ -1310,23 +1369,26 @@ screen phone_moment_relationship():
 
         vbox:
             spacing 9
-            text "HIDDEN POST НӨХЦӨЛ":
+            text "CLOSE FRIEND":
                 size 15
                 bold True
-                color theme["hot"]
-            text "Story reply":
-                size 17
-                color (theme["success"] if moment_story_replied else theme["muted"])
-            text "Relationship 35+":
-                size 17
-                color (theme["success"] if moment_relationship >= 35 else theme["muted"])
-            text "Илдний тусгал photo clue":
-                size 17
-                color (
-                    theme["success"]
-                    if "blade_reflection" in moment_found_clues
-                    else theme["muted"]
-                )
+                color (theme["success"] if close_friend else theme["accent_alt"])
+            if close_friend:
+                text "Нэмэлт story болон post нээгдсэн":
+                    size 18
+                    bold True
+                    color theme["success"]
+                text "Сарагийн Close Friends контент feed дээр автоматаар харагдана.":
+                    xmaximum 530
+                    size 15
+                    color theme["muted"]
+            else:
+                text "Relationship [MOMENT_CLOSE_FRIEND_THRESHOLD]+ хүрэхэд нээгдэнэ":
+                    size 17
+                    color theme["text"]
+                text "Дахин [close_friend_remaining] оноо хэрэгтэй":
+                    size 15
+                    color theme["muted"]
 
     text "Сүүлийн өөрчлөлтүүд":
         xpos 24
@@ -1348,324 +1410,6 @@ screen phone_moment_relationship():
                 text event size 15 color theme["text"]
 
     use moment_bottom_nav("relationship")
-
-
-screen phone_moment_clues():
-    $ theme = moment_theme_colors()
-    $ clue_count = len(moment_found_clues)
-
-    add Solid(theme["bg"])
-    use moment_page_header("Photo clues", back_target="social", right_label="MAP", right_target="location")
-
-    fixed:
-        xpos 24
-        ypos 140
-        xysize (576, 108)
-
-        add Solid(theme["surface_alt"])
-        text "ЦУГЛУУЛГА":
-            xpos 18
-            ypos 17
-            size 15
-            bold True
-            color theme["accent_alt"]
-        text "[clue_count]/3":
-            xpos 550
-            xanchor 1.0
-            ypos 12
-            size 32
-            bold True
-            color theme["text"]
-        add Solid(theme["line"]) xpos 18 ypos 72 xysize (540, 14)
-        if clue_count:
-            add Solid(theme["accent"]) xpos 18 ypos 72 xysize (int(540 * clue_count / 3.0), 14)
-
-    vbox:
-        xpos 24
-        ypos 272
-        spacing 14
-
-        for clue_id in ("blade_reflection", "blue_pin", "station_ticket"):
-            $ clue = MOMENT_CLUES[clue_id]
-            $ found = clue_id in moment_found_clues
-
-            frame:
-                xysize (576, 154)
-                padding (18, 16)
-                background Solid(theme["surface"] if found else theme["surface_alt"])
-
-                hbox:
-                    spacing 16
-
-                    fixed:
-                        xysize (76, 76)
-                        add Solid(theme["accent"] if found else theme["line"])
-                        text ("✓" if found else "?"):
-                            xalign 0.5
-                            yalign 0.5
-                            size 31
-                            bold True
-                            color "#ffffff"
-
-                    vbox:
-                        xsize 440
-                        spacing 5
-                        text (clue["title"] if found else "Нээгдээгүй clue"):
-                            size 20
-                            bold True
-                            color theme["text"]
-                        text (clue["description"] if found else "Moment feed-ийн зураг дотроос хайна уу."):
-                            xmaximum 430
-                            size 15
-                            color theme["muted"]
-                        text (clue["location"] if found else "Байршил нууц"):
-                            size 14
-                            color (theme["accent_alt"] if found else theme["muted"])
-
-    use moment_bottom_nav("clues")
-
-
-screen phone_moment_location():
-    $ theme = moment_theme_colors()
-    $ station_known = (
-        "blue_pin" in moment_found_clues
-        or "station_ticket" in moment_found_clues
-    )
-
-    add Solid(theme["bg"])
-    use moment_page_header("Locations", back_target="social", right_label="CLUES", right_target="clues")
-
-    fixed:
-        xpos 24
-        ypos 140
-        xysize (576, 348)
-        clipping True
-
-        add Solid("#071a2c")
-        add Solid(theme["accent_alt"] + "28") xpos 0 ypos 190 xysize (576, 158)
-        add Solid(theme["line"]) xpos 60 ypos 54 xysize (450, 4)
-        add Solid(theme["line"]) xpos 92 ypos 154 xysize (380, 4)
-        add Solid(theme["line"]) xpos 46 ypos 256 xysize (466, 4)
-        text "●" xpos 86 ypos 89 size 44 color theme["accent_alt"]
-        text "●" xpos 420 ypos 196 size 44 color (theme["hot"] if station_known else theme["muted"])
-        text "НУУР" xpos 70 ypos 133 size 14 bold True color "#ffffff"
-        text "БУУДАЛ" xpos 393 ypos 241 size 14 bold True color "#ffffff"
-        text "INTERACTIVE LOCATION MAP":
-            xpos 18
-            ypos 18
-            size 14
-            bold True
-            color "#ffffffaa"
-
-    hbox:
-        xpos 24
-        ypos 508
-        spacing 12
-
-        textbutton "НУУРЫН ЭРЭГ":
-            xysize (282, 62)
-            text_size 15
-            text_bold True
-            text_color "#ffffff"
-            background Solid(
-                theme["accent_alt"]
-                if moment_selected_location == "lake"
-                else theme["surface_alt"]
-            )
-            action Function(moment_open_location, "lake")
-
-        textbutton "ХУУЧИН БУУДАЛ":
-            xysize (282, 62)
-            text_size 15
-            text_bold True
-            text_color ("#ffffff" if station_known else theme["muted"])
-            background Solid(
-                theme["hot"]
-                if moment_selected_location == "station" and station_known
-                else theme["surface_alt"]
-            )
-            sensitive station_known
-            action Function(moment_open_location, "station")
-
-    frame:
-        xpos 24
-        ypos 592
-        xysize (576, 238)
-        padding (20, 18)
-        background Solid(theme["surface"])
-
-        if moment_selected_location == "station" and station_known:
-            vbox:
-                spacing 10
-                text "Хуучин буудал · 04-р тавцан":
-                    size 24
-                    bold True
-                    color theme["text"]
-                text "Сарагийн зураг болон нууц post хоёр энэ байршилтай холбоотой.":
-                    size 17
-                    color theme["muted"]
-                text "Олдсон мэдээлэл: 23:10 · хаалттай тавцан":
-                    size 15
-                    color theme["accent_alt"]
-                textbutton "HIDDEN POST ШАЛГАХ":
-                    xsize 520
-                    ysize 54
-                    text_size 15
-                    text_color "#ffffff"
-                    background Solid(theme["accent"])
-                    sensitive moment_hidden_post_unlocked
-                    action Function(moment_open_hidden_post)
-        else:
-            vbox:
-                spacing 10
-                text "Нуурын эрэг":
-                    size 24
-                    bold True
-                    color theme["text"]
-                text "Сарагийн хамгийн сүүлийн post нийтлэгдсэн газар.":
-                    size 17
-                    color theme["muted"]
-                text "Clue: арын тусгалыг шалгах":
-                    size 15
-                    color theme["accent_alt"]
-                textbutton "POST РУУ БУЦАХ":
-                    xsize 520
-                    ysize 54
-                    text_size 15
-                    text_color "#ffffff"
-                    background Solid(theme["accent"])
-                    action SetVariable("phone_view", "social")
-
-    use moment_bottom_nav("location")
-
-
-screen phone_moment_hidden_post():
-    $ theme = moment_theme_colors()
-
-    add Solid(theme["bg"])
-    use moment_page_header("Hidden post", back_target="social", right_label="BOND", right_target="relationship")
-
-    if not moment_hidden_post_unlocked:
-        fixed:
-            xpos 24
-            ypos 180
-            xysize (576, 520)
-
-            add Solid(theme["surface"])
-            text "LOCKED":
-                xalign 0.5
-                ypos 80
-                size 38
-                bold True
-                color theme["muted"]
-            text "Story reply, Relationship 35 болон Илдний тусгал clue хэрэгтэй.":
-                xalign 0.5
-                ypos 160
-                xmaximum 500
-                text_align 0.5
-                size 21
-                color theme["text"]
-            textbutton "RELATIONSHIP ШАЛГАХ":
-                xalign 0.5
-                ypos 270
-                xysize (430, 62)
-                text_size 17
-                text_color "#ffffff"
-                background Solid(theme["accent"])
-                action SetVariable("phone_view", "relationship")
-    else:
-        viewport:
-            xpos 0
-            ypos 118
-            xsize 624
-            ysize 866
-            mousewheel True
-            draggable True
-            scrollbars None
-
-            vbox:
-                xsize 624
-                spacing 0
-
-                fixed:
-                    xysize (624, 80)
-                    add Solid(theme["surface"])
-                    text "●" xpos 18 yalign 0.5 size 58 color theme["hot"]
-                    text "S" xpos 39 xanchor 0.5 yalign 0.5 size 20 bold True color "#ffffff"
-                    text "sara.light" xpos 78 ypos 16 size 21 bold True color theme["text"]
-                    text "Close Friends · зөвхөн танд" xpos 78 ypos 44 size 14 color theme["success"]
-
-                fixed:
-                    xysize (624, 410)
-                    add Solid("#111827")
-                    add "pWallpaper" xysize (420, 630) xpos 204 ypos -80 alpha 0.52
-                    add Solid(theme["accent"] + "35") xpos 0 ypos 0 xysize (230, 410)
-                    add Solid("#00000055")
-                    text "04":
-                        xpos 52
-                        ypos 88
-                        size 112
-                        bold True
-                        color "#ffffff"
-                    text "ТАВЦАН":
-                        xpos 58
-                        ypos 208
-                        size 25
-                        bold True
-                        color theme["accent_alt"]
-                    text "23:10":
-                        xpos 58
-                        ypos 251
-                        size 19
-                        color "#d1d5db"
-
-                    if "station_ticket" in moment_found_clues:
-                        text "TICKET CLUE FOUND":
-                            xpos 596
-                            xanchor 1.0
-                            ypos 362
-                            size 14
-                            bold True
-                            color "#a7f3d0"
-                    else:
-                        textbutton "CHECK TICKET":
-                            xpos 420
-                            ypos 348
-                            xysize (180, 48)
-                            text_size 14
-                            text_bold True
-                            text_color "#ffffff"
-                            background Solid(theme["hot"])
-                            action Function(moment_collect_clue, "station_ticket")
-
-                frame:
-                    xfill True
-                    ysize 210
-                    padding (24, 18)
-                    background Solid(theme["surface"])
-
-                    vbox:
-                        spacing 10
-                        text "{b}sara.light{/b}  Энэ зургийг нийтэд харуулахыг хүссэнгүй.":
-                            size 20
-                            color theme["text"]
-                        text "Маргааш 23:10-д 04-р тавцанд очих хэрэгтэй юм шиг байна. Гэхдээ ганцаараа биш.":
-                            size 18
-                            color theme["text"]
-                        text "Hidden post · Relationship [moment_relationship]/100":
-                            size 14
-                            color theme["muted"]
-
-                textbutton "САРАД DM БИЧИХ":
-                    xalign 0.5
-                    xysize (576, 64)
-                    text_size 18
-                    text_bold True
-                    text_color "#ffffff"
-                    background Solid(theme["accent"])
-                    action Function(moment_open_contact, "sara")
-
-                null height 30
 
 
 screen phone_moment_dm():
@@ -1857,7 +1601,8 @@ screen phone_moment_chat():
     $ active_typing = active_is_sara and sara_is_typing
     $ typing_text = "%s бичиж байна..." % contact["name"]
     $ can_send = bool(phone_chat_input.strip()) and not active_typing
-    $ final_button_label = "SEND" if can_send else "+"
+    $ final_icon_path = "images/phoneUI/Momenticon/send.png" if can_send else "images/phoneUI/Momenticon/add.png"
+    $ final_icon_crop = (398, 389, 403, 396) if can_send else None
     $ final_button_action = Function(moment_send_active_dm) if can_send else Notify("Attachment menu дараагийн шатанд нэмэгдэнэ.")
 
     add Solid(theme["bg"])
@@ -2050,12 +1795,12 @@ screen phone_moment_chat():
                 xysize=(600, 66),
             )
 
-            # Replace these labeled square placeholders with icon assets later.
-            use moment_composer_placeholder(
-                "CAM",
+            use moment_composer_icon(
+                "images/phoneUI/CameraIcon.png",
                 Notify("Camera дараагийн шатанд нэмэгдэнэ."),
                 20,
                 accent=True,
+                icon_crop=(317, 357, 346, 266),
             )
 
             if not phone_chat_input:
@@ -2076,26 +1821,28 @@ screen phone_moment_chat():
                 caret Solid(theme["accent_alt"])
                 default_focus True
 
-            use moment_composer_placeholder(
-                "MIC",
+            use moment_composer_icon(
+                "images/phoneUI/Momenticon/mic.svg",
                 Notify("Voice message дараагийн шатанд нэмэгдэнэ."),
                 330,
             )
-            use moment_composer_placeholder(
-                "PIC",
+            use moment_composer_icon(
+                "images/phoneUI/Momenticon/picture.png",
                 Notify("Gallery дараагийн шатанд нэмэгдэнэ."),
                 390,
+                icon_crop=(446, 446, 308, 308),
             )
-            use moment_composer_placeholder(
-                "STK",
+            use moment_composer_icon(
+                "images/phoneUI/Momenticon/sticker.png",
                 Notify("Sticker дараагийн шатанд нэмэгдэнэ."),
                 450,
             )
-            use moment_composer_placeholder(
-                final_button_label,
+            use moment_composer_icon(
+                final_icon_path,
                 final_button_action,
                 510,
                 accent=can_send,
+                icon_crop=final_icon_crop,
             )
 
 
