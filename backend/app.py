@@ -1,16 +1,19 @@
-"""Render-hosted API for Moment's in-game Sara chatbot."""
+"""Render-hosted Gemini API for Moment's in-game Sara chatbot."""
 
 from __future__ import annotations
 
+import json
 import os
+import re
 import secrets
 import threading
 import time
+import urllib.error
+import urllib.request
 from collections import defaultdict, deque
 from typing import Any
 
 from flask import Flask, jsonify, request
-from openai import OpenAI
 
 
 app = Flask(__name__)
@@ -19,6 +22,8 @@ MAX_REQUEST_BYTES = 32_768
 MAX_MESSAGE_CHARS = 800
 MAX_HISTORY_ITEMS = 16
 MAX_REPLY_CHARS = 600
+MAX_UPSTREAM_BYTES = 65_536
+GEMINI_API_ROOT = "https://generativelanguage.googleapis.com/v1beta/models"
 app.config["MAX_CONTENT_LENGTH"] = MAX_REQUEST_BYTES
 
 _rate_lock = threading.Lock()
@@ -86,23 +91,32 @@ def _normalize_history(raw_history: Any) -> list[dict[str, str]]:
     return normalized
 
 
-def _model_input(history: list[dict[str, str]], message: str) -> list[dict[str, str]]:
-    items = [
-        {
-            "role": "user" if item["sender"] == "player" else "assistant",
-            "content": item["text"],
-        }
-        for item in history
-    ]
+def _gemini_contents(history: list[dict[str, str]], message: str) -> list[dict[str, Any]]:
+    """Keep the DM context, with one final copy of the latest player message."""
+    messages = list(history)
+    if not (messages and messages[-1] == {"sender": "player", "text": message}):
+        messages.append({"sender": "player", "text": message})
 
-    latest_is_duplicate = bool(
-        items
-        and items[-1]["role"] == "user"
-        and items[-1]["content"] == message
-    )
-    if not latest_is_duplicate:
-        items.append({"role": "user", "content": message})
-    return items
+    # Old save files can start with Sara's greeting. Start with a user turn
+    # before that model message to form a valid multi-turn conversation.
+    contents: list[dict[str, Any]] = []
+    if messages[0]["sender"] == "sara":
+        contents.append({"role": "user", "parts": [{"text": "Өмнөх чатыг үргэлжлүүл."}]})
+
+    for item in messages:
+        role = "user" if item["sender"] == "player" else "model"
+        part = {"text": item["text"]}
+        if contents and contents[-1]["role"] == role:
+            contents[-1]["parts"].append(part)
+        else:
+            contents.append({"role": role, "parts": [part]})
+    return contents
+
+
+class GeminiUpstreamError(RuntimeError):
+    def __init__(self, status_code: int):
+        super().__init__("Gemini API HTTP %s" % status_code)
+        self.status_code = status_code
 
 
 def _instructions(payload: dict[str, Any]) -> str:
@@ -142,19 +156,50 @@ Story reply хийгдсэн эсэх: {story_replied}. {closeness}
 def generate_reply(payload: dict[str, Any]) -> str:
     message = _text(payload.get("message"), MAX_MESSAGE_CHARS)
     history = _normalize_history(payload.get("history"))
-    model = os.getenv("OPENAI_MODEL", "gpt-5-mini").strip() or "gpt-5-mini"
+    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite").strip() or "gemini-2.5-flash-lite"
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", model):
+        raise ValueError("GEMINI_MODEL contains invalid characters")
 
-    client = OpenAI(timeout=25.0, max_retries=0)
-    response = client.responses.create(
-        model=model,
-        instructions=_instructions(payload),
-        input=_model_input(history, message),
-        max_output_tokens=220,
-        store=False,
+    gemini_request = urllib.request.Request(
+        "%s/%s:generateContent" % (GEMINI_API_ROOT, model),
+        data=json.dumps(
+            {
+                "system_instruction": {"parts": [{"text": _instructions(payload)}]},
+                "contents": _gemini_contents(history, message),
+                "generationConfig": {"maxOutputTokens": 512},
+            },
+            ensure_ascii=False,
+        ).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json; charset=utf-8",
+            "Accept": "application/json",
+            "x-goog-api-key": os.environ["GEMINI_API_KEY"],
+        },
+        method="POST",
     )
-    reply = _text(response.output_text, MAX_REPLY_CHARS)
+    try:
+        with urllib.request.urlopen(gemini_request, timeout=25) as response:
+            raw = response.read(MAX_UPSTREAM_BYTES + 1)
+    except urllib.error.HTTPError as exc:
+        raise GeminiUpstreamError(exc.code) from exc
+
+    if len(raw) > MAX_UPSTREAM_BYTES:
+        raise RuntimeError("Gemini response too large")
+    result = json.loads(raw.decode("utf-8"))
+    candidates = result.get("candidates") or []
+    parts = []
+    if candidates:
+        parts = (candidates[0].get("content") or {}).get("parts") or []
+    reply = _text(
+        "".join(
+            part.get("text", "")
+            for part in parts
+            if isinstance(part, dict) and not part.get("thought")
+        ),
+        MAX_REPLY_CHARS,
+    )
     if not reply:
-        raise RuntimeError("OpenAI returned an empty reply")
+        raise RuntimeError("Gemini returned an empty reply")
     return reply
 
 
@@ -192,14 +237,19 @@ def chat():
     if not message:
         return jsonify({"error": "message_required"}), 400
 
-    if not os.getenv("OPENAI_API_KEY", "").strip():
-        app.logger.error("OPENAI_API_KEY is not configured")
+    if not os.getenv("GEMINI_API_KEY", "").strip():
+        app.logger.error("GEMINI_API_KEY is not configured")
         return jsonify({"error": "service_not_configured"}), 503
 
     try:
         reply = generate_reply(payload)
+    except GeminiUpstreamError as exc:
+        app.logger.warning("Gemini API returned HTTP %s", exc.status_code)
+        if exc.status_code == 429:
+            return jsonify({"error": "free_tier_limit"}), 429
+        return jsonify({"error": "upstream_error"}), 502
     except Exception:
-        app.logger.exception("OpenAI chat request failed")
+        app.logger.exception("Gemini chat request failed")
         return jsonify({"error": "upstream_error"}), 502
 
     return jsonify({"reply": reply})

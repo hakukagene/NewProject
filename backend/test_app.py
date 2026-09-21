@@ -1,4 +1,7 @@
+import io
+import json
 import os
+import urllib.error
 import unittest
 from unittest.mock import patch
 
@@ -9,7 +12,12 @@ class ChatbotApiTests(unittest.TestCase):
     def setUp(self):
         self.env_patcher = patch.dict(
             os.environ,
-            {"GAME_CLIENT_TOKEN": "", "CHAT_RATE_LIMIT_PER_MINUTE": "12"},
+            {
+                "GEMINI_API_KEY": "",
+                "GEMINI_MODEL": "gemini-2.5-flash-lite",
+                "GAME_CLIENT_TOKEN": "",
+                "CHAT_RATE_LIMIT_PER_MINUTE": "12",
+            },
             clear=False,
         )
         self.env_patcher.start()
@@ -27,7 +35,12 @@ class ChatbotApiTests(unittest.TestCase):
         response = self.client.post("/api/chat", json={"message": ""})
         self.assertEqual(response.status_code, 400)
 
-    @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=False)
+    def test_missing_gemini_key(self):
+        response = self.client.post("/api/chat", json={"message": "Сайн уу?"})
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.get_json(), {"error": "service_not_configured"})
+
+    @patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=False)
     @patch.object(chatbot, "generate_reply", return_value="Тэгье, дараа ярья 😊")
     def test_chat_reply(self, mocked_reply):
         response = self.client.post(
@@ -42,13 +55,18 @@ class ChatbotApiTests(unittest.TestCase):
         self.assertEqual(response.get_json()["reply"], "Тэгье, дараа ярья 😊")
         mocked_reply.assert_called_once()
 
-    @patch.dict(os.environ, {"OPENAI_MODEL": "gpt-5-mini"}, clear=False)
-    @patch.object(chatbot, "OpenAI")
-    def test_generate_reply_uses_responses_api(self, mocked_openai):
-        mocked_openai.return_value.responses.create.return_value.output_text = (
-            "Тийм ээ, санаж байна."
+    @patch.dict(
+        os.environ,
+        {"GEMINI_API_KEY": "test-key", "GEMINI_MODEL": "gemini-2.5-flash-lite"},
+        clear=False,
+    )
+    @patch.object(chatbot.urllib.request, "urlopen")
+    def test_generate_reply_uses_gemini_and_deduplicates_history(self, mocked_urlopen):
+        mocked_urlopen.return_value = io.BytesIO(
+            json.dumps(
+                {"candidates": [{"content": {"parts": [{"text": "Тийм ээ, санаж байна."}]}}]}
+            ).encode("utf-8")
         )
-
         reply = chatbot.generate_reply(
             {
                 "message": "Тэр газрыг санаж байна уу?",
@@ -61,16 +79,46 @@ class ChatbotApiTests(unittest.TestCase):
         )
 
         self.assertEqual(reply, "Тийм ээ, санаж байна.")
-        call = mocked_openai.return_value.responses.create.call_args.kwargs
-        self.assertEqual(call["model"], "gpt-5-mini")
-        self.assertEqual(call["input"][-1]["role"], "user")
-        self.assertEqual(len(call["input"]), 2)
-        self.assertFalse(call["store"])
-        mocked_openai.assert_called_once_with(timeout=25.0, max_retries=0)
+        gemini_request = mocked_urlopen.call_args.args[0]
+        self.assertEqual(mocked_urlopen.call_args.kwargs["timeout"], 25)
+        self.assertEqual(gemini_request.get_method(), "POST")
+        self.assertEqual(
+            gemini_request.full_url,
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent",
+        )
+        self.assertEqual(gemini_request.get_header("X-goog-api-key"), "test-key")
+        body = json.loads(gemini_request.data.decode("utf-8"))
+        self.assertIn("Сара", body["system_instruction"]["parts"][0]["text"])
+        self.assertEqual([turn["role"] for turn in body["contents"]], ["user", "model", "user"])
+        self.assertEqual(body["contents"][-1]["parts"], [{"text": "Тэр газрыг санаж байна уу?"}])
+        self.assertEqual(
+            chatbot._gemini_contents([], "Сайн уу?"),
+            [{"role": "user", "parts": [{"text": "Сайн уу?"}]}],
+        )
+
+    @patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=False)
+    @patch.object(chatbot.urllib.request, "urlopen")
+    def test_gemini_quota_error_maps_to_429(self, mocked_urlopen):
+        mocked_urlopen.side_effect = urllib.error.HTTPError(
+            "https://generativelanguage.googleapis.com/", 429, "Quota exceeded", {}, None
+        )
+        response = self.client.post("/api/chat", json={"message": "Сайн уу?"})
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.get_json(), {"error": "free_tier_limit"})
+
+    @patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=False)
+    @patch.object(chatbot.urllib.request, "urlopen")
+    def test_gemini_auth_error_maps_to_502(self, mocked_urlopen):
+        mocked_urlopen.side_effect = urllib.error.HTTPError(
+            "https://generativelanguage.googleapis.com/", 403, "Invalid key", {}, None
+        )
+        response = self.client.post("/api/chat", json={"message": "Сайн уу?"})
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.get_json(), {"error": "upstream_error"})
 
     @patch.dict(
         os.environ,
-        {"OPENAI_API_KEY": "test-key", "GAME_CLIENT_TOKEN": "gate-token"},
+        {"GEMINI_API_KEY": "test-key", "GAME_CLIENT_TOKEN": "gate-token"},
         clear=False,
     )
     def test_optional_game_token(self):

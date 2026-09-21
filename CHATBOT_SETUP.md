@@ -1,62 +1,82 @@
-# Moment chatbot — OpenAI + Render
+# Moment chatbot — Gemini free tier + Render
 
-Ren'Py тоглоом жижиг Render backend руу холбогдоно. Зөвхөн backend нь OpenAI
-Responses API-г дууддаг тул `OPENAI_API_KEY` тоглоомын build дотор орохгүй.
+Ren'Py тоглоом Render дээрх `moment-chatbot` backend руу холбогдоно. Backend нь
+Google Gemini API-г дуудна. Тоглоомын DM, Сарагийн дүрийн заавар, Relationship,
+Story Reply болон өмнөх 16 мессежийн урсгал хэвээр ажиллана.
 
-## 1. Backend deploy хийх
+## 1. Үнэгүй Gemini API key авах
 
-1. Render дээр **New → Blueprint** сонгоод энэ repository-г холбоно.
-2. Render root дахь `render.yaml`-г уншаад `moment-chatbot` web service үүсгэнэ.
-3. `OPENAI_API_KEY` асуухад OpenAI dashboard-аас авсан key-г оруулна.
-4. Deploy дууссаны дараа `/health` нь `{"status":"ok"}` буцааж байгааг шалгана.
+1. [Google AI Studio API Keys](https://aistudio.google.com/api-keys)-д орж
+   **Create API key** сонго. Шинээр үүсгэсэн **auth key** ашигла.
+2. Google AI Studio-д project-ийн tier **Free** гэдгийг шалга. Төлбөртэй tier
+   рүү шилжүүлэх шаардлагагүй. `gemini-2.5-flash-lite` model-ийн стандарт
+   текст оролт/гаралт Free tier-д үнэгүй, харин хүсэлтийн тоо болон хурдны
+   хязгаартай. Хязгаарыг өөрийн AI Studio-ийн Rate limits хэсгээс харна.
+3. Free tier-р илгээсэн чат контентыг Google бүтээгдэхүүнээ сайжруулахад
+   ашиглаж болохыг харгалз. Тоглогчийн бодит хувийн мэдээллийг чатаар
+   явуулахгүй байх тухай нийтэд нээлттэй хувилбарт тайлбарлах нь зүйтэй.
 
-Default model нь `gpt-5-mini`. Өөр дэмжигдсэн text model ашиглах бол Render
-дээрх `OPENAI_MODEL` environment variable-г солино. Render Free service 15 минут
-idle болсны дараа унтарч, дахин асахдаа ойролцоогоор нэг минут зарцуулдаг. Иймээс
-Ren'Py request background-аар ажиллаж, 75 секунд timeout ашиглана. Paid instance
-ашиглавал idle spin-down байхгүй.
+Албан ёсны мэдээлэл: [үнэ ба контентын нөхцөл](https://ai.google.dev/gemini-api/docs/pricing),
+[үнэгүй квот](https://ai.google.dev/gemini-api/docs/rate-limits),
+[API key](https://ai.google.dev/gemini-api/docs/api-key).
 
-## 2. Ren'Py-г холбох
+## 2. Render-ийн одоо байгаа service-д key нэмэх
 
-`game/chatbot_config.rpy` доторх:
+GitHub-ийн шинэ `main` commit Render-т deploy хийгдсэний дараа Render Dashboard
+→ **moment-chatbot** → **Environment** → **Add Environment Variable**:
 
-```renpy
-define MOMENT_CHATBOT_API_URL = "https://YOUR-RENDER-SERVICE.onrender.com/api/chat"
+| Key | Value |
+| --- | --- |
+| `GEMINI_API_KEY` | AI Studio-оос авсан хувийн key |
+| `GEMINI_MODEL` | `gemini-2.5-flash-lite` (Blueprint-д бэлэн) |
+
+**Save and deploy** дар. `render.yaml`-д `GEMINI_API_KEY`-г `sync: false` гэж
+зарласан ч **өмнө нь үүссэн Blueprint** шинэ secret-ийг автоматаар асуухгүй;
+Render service-ийн Environment хэсэгт гараар оруулах хэрэгтэй. Хуучин
+`OPENAI_API_KEY` одоо ашиглагдахгүй.
+
+Key-г `.rpy`, `render.yaml`, GitHub commit, тоглоомын build эсвэл client header-д
+битгий оруул. Тэр зөвхөн Render-ийн Environment-д байна.
+
+## 3. Холболтыг шалгах
+
+`https://moment-chatbot.onrender.com/health` хаяг `{"status":"ok"}` буцаавал
+Render backend ажиллаж байна. Энэ нь AI key ажиллаж байгааг шалгахгүй.
+
+PowerShell-оос бодит чат хүсэлт явуулж туршиж болно:
+
+```powershell
+$chatBody = @{ message = "Сайн уу?"; history = @(); relationship = 0 } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri "https://moment-chatbot.onrender.com/api/chat" -ContentType "application/json; charset=utf-8" -Body ([Text.Encoding]::UTF8.GetBytes($chatBody))
 ```
 
-гэсэн мөрийн URL-г Render-ийн service URL-аар солино. Төгсгөлд нь `/api/chat`
-хэвээр үлдээнэ.
+Амжилттай бол `reply` ирнэ. `503` = Render дээр `GEMINI_API_KEY` байхгүй;
+`429` = backend эсвэл Gemini free quota хэтэрсэн; `502` = Gemini хүсэлт
+бүтэлгүй (Render Logs-ийг шалга). Тоглоомоос мессеж явуулсны дараа Logs-д
+`POST /api/chat` байхгүй бол локал тоглоомын URL-г шалга.
 
-`OPENAI_API_KEY`-г `.rpy` файл, GitHub commit, game build эсвэл client header-д
-**хийж болохгүй**. Тоглогч compiled build-ээс client талын утгыг гаргаж чадна.
+Тоглоомын [game/chatbot_config.rpy](game/chatbot_config.rpy) файлд
+`MOMENT_CHATBOT_API_URL` нь яг Render service-ийн `/api/chat` хаяг байх ёстой.
+URL солигдсон бол шинэ хаягаар нь солиод Ren'Py-г дахин эхлүүл.
 
-## 3. Нэмэлт request gate
+## Нэмэлт client gate
 
-Энгийн хамгаалалт хэрэгтэй бол Render дээр `GAME_CLIENT_TOKEN` тохируулаад яг
-ижил утгыг `MOMENT_CHATBOT_CLIENT_TOKEN`-д тавьж болно. Энэ утга тоглоомтой хамт
-тархах тул жинхэнэ нууцлал биш, зөвхөн санамсаргүй хүсэлтийг хаана. Backend нь
-мөн client IP бүрд rate limit хийдэг. Public release хийхдээ OpenAI project spend
-limit тавьж, шаардлагатай бол жинхэнэ player authentication нэмнэ.
+Render дээр `GAME_CLIENT_TOKEN` тохируулсан бол тоглоомын
+`MOMENT_CHATBOT_CLIENT_TOKEN` ижил байх ёстой. Client доторх token-г тоглогч
+гаргаж авдаг тул жинхэнэ нууц биш. Туршилтад хоёуланг нь хоосон байлгаж болно.
+Backend IP бүрт минутын rate limit хийнэ. Free tier нийт project-ийн
+хязгаартай тул олон тоглогч зэрэг ашиглахад түр хугацаанд `429` гарч болно.
 
 ## Local backend test
-
-Repository root-оос:
 
 ```bash
 cd backend
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-export OPENAI_API_KEY="your_key_here"
+export GEMINI_API_KEY="your_key_here"
 python app.py
 ```
 
-Local game test хийхдээ Ren'Py URL-г түр хугацаанд ингэж солино:
-
-```renpy
-define MOMENT_CHATBOT_API_URL = "http://127.0.0.1:10000/api/chat"
-```
-
-Албан ёсны заавар: [OpenAI API quickstart](https://developers.openai.com/api/docs/quickstart),
-[Render Flask deploy](https://render.com/docs/deploy-flask),
-[Render Free хязгаарлалт](https://render.com/docs/free).
+Локал тест хийхдээ `MOMENT_CHATBOT_API_URL`-г түр хугацаанд
+`http://127.0.0.1:10000/api/chat` болго.
