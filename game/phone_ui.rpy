@@ -277,6 +277,11 @@ init python:
     def phone_request_ai_reply(request_id, api_url, client_token, timeout, payload):
         """Call the secure backend from Ren'Py's background thread."""
 
+        print("========== MOMENT CHATBOT ==========")
+        print("API URL:", api_url)
+        print("REQUEST ID:", request_id)
+        print("PAYLOAD:", payload)
+
         try:
             if not api_url or "YOUR-RENDER-SERVICE" in api_url:
                 raise ValueError("chatbot_url_not_configured")
@@ -294,7 +299,6 @@ init python:
                 ensure_ascii=False
             ).encode("utf-8")
 
-
             request = urllib.request.Request(
                 api_url,
                 data=body,
@@ -302,8 +306,10 @@ init python:
                 method="POST",
             )
 
-            import ssl
+            print("REQUEST CREATED")
 
+            # Одоохондоо таны SSL certificate асуудлыг тойрч байгаа
+            import ssl
             ssl_context = ssl._create_unverified_context()
 
             with urllib.request.urlopen(
@@ -312,54 +318,104 @@ init python:
                 context=ssl_context
             ) as response:
 
+                status = response.getcode()
                 raw_body = response.read(32769)
 
-                if len(raw_body) > 32768:
-                    raise ValueError("chatbot_response_too_large")
+                print("HTTP STATUS:", status)
+                print("RAW RESPONSE:", repr(raw_body))
 
-            result = json.loads(raw_body.decode("utf-8"))
+            if len(raw_body) > 32768:
+                raise ValueError("chatbot_response_too_large")
 
-            if not isinstance(result, dict):
+            # JSON decode
+            decoded_body = raw_body.decode("utf-8")
+
+            print("DECODED RESPONSE:", decoded_body)
+
+            result = json.loads(decoded_body)
+
+            print("JSON RESULT:", repr(result))
+            print("JSON TYPE:", type(result).__name__)
+
+            # isinstance(result, dict) шалгалт зориуд ашиглахгүй.
+            try:
+                reply = result["reply"]
+            except (KeyError, TypeError):
+                reply = None
+
+            print("REPLY BEFORE CONVERT:", repr(reply))
+            print(
+                "REPLY TYPE:",
+                type(reply).__name__ if reply is not None else "None"
+            )
+
+            if reply is None:
                 raise ValueError("chatbot_reply_missing")
-            reply = result.get("reply", "")
-            if not isinstance(reply, str):
+
+            # Ren'Py/Python object ямар төрөлтэй байхаас үл хамааруулна.
+            reply = str(reply).strip()
+
+            print("REPLY AFTER CONVERT:", repr(reply))
+
+            if len(reply) == 0:
                 raise ValueError("chatbot_reply_missing")
-            reply = reply.strip()
-            if not reply:
-                raise ValueError("chatbot_reply_missing")
+
+            # Хэт урт AI response-ийг UI руу оруулахгүй.
+            reply = reply[:600]
+
+            print("SARA REPLY:", reply)
+            print("========== CHATBOT SUCCESS ==========")
 
             renpy.invoke_in_main_thread(
                 phone_complete_ai_reply,
                 request_id,
-                reply[:600],
+                reply,
                 "",
-                result,
             )
 
-        except urllib.error.HTTPError as exc:
+            return
 
+        except urllib.error.HTTPError as exc:
             try:
                 error_body = exc.read().decode("utf-8", "replace")
             except Exception:
                 error_body = ""
 
+            print("========== CHATBOT HTTP ERROR ==========")
+            print("HTTP CODE:", exc.code)
+            print("HTTP REASON:", exc.reason)
+            print("HTTP BODY:", error_body)
+
             renpy.invoke_in_main_thread(
                 phone_complete_ai_reply,
                 request_id,
                 None,
-                "http_%s: %s" % (exc.code, error_body[:300]),
+                "http_%s: %s" % (
+                    exc.code,
+                    error_body[:300]
+                ),
             )
 
         except urllib.error.URLError as exc:
+            print("========== CHATBOT NETWORK ERROR ==========")
+            print("URL:", api_url)
+            print("REASON:", repr(exc.reason))
 
             renpy.invoke_in_main_thread(
                 phone_complete_ai_reply,
                 request_id,
                 None,
-                "network_%s" % getattr(exc, "reason", "error"),
+                "network_%s" % getattr(
+                    exc,
+                    "reason",
+                    "error"
+                ),
             )
 
         except Exception as exc:
+            print("========== CHATBOT ERROR ==========")
+            print("TYPE:", type(exc).__name__)
+            print("ERROR:", repr(exc))
 
             renpy.invoke_in_main_thread(
                 phone_complete_ai_reply,
