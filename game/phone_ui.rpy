@@ -37,6 +37,7 @@ default sara_messages = [
 init python:
     import datetime
     import json
+    import time
     import urllib.error
     import urllib.request
 
@@ -169,6 +170,12 @@ init python:
         message = renpy.store.phone_chat_input.strip()
         if not message or renpy.store.sara_is_typing:
             return
+        if renpy.store.sara_blocked:
+            renpy.notify("Сара харилцаагаа зогсоосон байна.")
+            return
+        if time.time() < renpy.store.sara_cooldown_until:
+            renpy.notify("Сара түр завсарлага авч байна.")
+            return
 
         renpy.store.sara_messages.append({
             "sender": "player",
@@ -193,13 +200,13 @@ init python:
             "message": message,
             "history": history,
             "relationship": getattr(renpy.store, "moment_relationship", 0),
+            "mood": getattr(renpy.store, "sara_mood", "neutral"),
+            "boundary_strikes": getattr(renpy.store, "sara_boundary_strikes", 0),
+            "blocked": getattr(renpy.store, "sara_blocked", False),
             "story_replied": getattr(renpy.store, "moment_story_replied", False),
             "player_name": getattr(renpy.store, "moment_profile_name", "Тоглогч"),
         }
         renpy.restart_interaction()
-        print("CHATBOT: phone_send_message called")
-        print("CHATBOT URL:", MOMENT_CHATBOT_API_URL)
-        print("CHATBOT PAYLOAD:", payload)
         renpy.invoke_in_thread(
             phone_request_ai_reply,
             request_id,
@@ -210,7 +217,40 @@ init python:
         )
 
 
-    def phone_complete_ai_reply(request_id, reply=None, error=""):
+    def phone_apply_sara_result(result):
+        """Apply only bounded, recognized server state to the saved story."""
+        signals = {
+            "kind": "Сайхан харилцсан", "thoughtful": "Сараг ойлгосон",
+            "neutral": "Ярилцсан", "awkward": "Тухгүй асуулт",
+            "rude": "Ширүүн үг", "pressuring": "Хил давж шахсан",
+            "harassment": "Сараг дарамталсан", "apology": "Уучлалт гуйсан",
+        }
+        signal = result.get("signal")
+        delta = result.get("relationship_delta")
+        mood = result.get("mood")
+        strikes = result.get("boundary_strikes")
+        pause = result.get("pause_seconds")
+        blocked = result.get("blocked")
+        if (signal not in signals or type(delta) is not int or not -8 <= delta <= 3
+                or mood not in ("neutral", "warm", "guarded", "upset")
+                or type(strikes) is not int or not 0 <= strikes <= 4
+                or type(pause) is not int or not 0 <= pause <= 120
+                or type(blocked) is not bool or blocked != (strikes >= 4)):
+            return
+        if delta:
+            moment_adjust_relationship(delta, signals[signal])
+        renpy.store.sara_mood = mood
+        renpy.store.sara_boundary_strikes = strikes
+        renpy.store.sara_blocked = blocked
+        renpy.store.sara_cooldown_until = time.time() + pause if pause else 0.0
+        if blocked:
+            renpy.store.phone_chat_input = ""
+            renpy.notify("Сара харилцаагаа зогсоолоо.")
+        elif pause:
+            renpy.notify("Сара түр завсарлага авлаа.")
+
+
+    def phone_complete_ai_reply(request_id, reply=None, error="", state=None):
         """Apply a worker result on Ren'Py's main thread."""
         if request_id != renpy.store.phone_chat_request_id:
             return
@@ -220,6 +260,9 @@ init python:
             reply = PHONE_OFFLINE_REPLIES[reply_index]
             renpy.store.phone_chatbot_last_error = error or "unknown_error"
             renpy.notify("Chatbot холбогдсонгүй — offline reply ашиглалаа.")
+
+        elif isinstance(state, dict):
+            phone_apply_sara_result(state)
 
         renpy.store.sara_messages = list(renpy.store.sara_messages) + [{
             "sender": "sara",
@@ -233,11 +276,6 @@ init python:
 
     def phone_request_ai_reply(request_id, api_url, client_token, timeout, payload):
         """Call the secure backend from Ren'Py's background thread."""
-
-        print("========== MOMENT CHATBOT ==========")
-        print("API URL:", api_url)
-        print("REQUEST ID:", request_id)
-        print("PAYLOAD:", payload)
 
         try:
             if not api_url or "YOUR-RENDER-SERVICE" in api_url:
@@ -256,8 +294,6 @@ init python:
                 ensure_ascii=False
             ).encode("utf-8")
 
-            print("BODY SIZE:", len(body))
-            print("SENDING POST:", api_url)
 
             request = urllib.request.Request(
                 api_url,
@@ -265,8 +301,6 @@ init python:
                 headers=headers,
                 method="POST",
             )
-
-            print("REQUEST CREATED")
 
             import ssl
 
@@ -278,45 +312,28 @@ init python:
                 context=ssl_context
             ) as response:
 
-                print("CONNECTED!")
-                print("HTTP STATUS:", response.getcode())
-
                 raw_body = response.read(32769)
-
-                print("RAW RESPONSE:", raw_body[:1000])
 
                 if len(raw_body) > 32768:
                     raise ValueError("chatbot_response_too_large")
 
             result = json.loads(raw_body.decode("utf-8"))
 
-            print("JSON RESULT:", result)
-            print("RESULT TYPE:", type(result))
-
-            try:
-                reply = result.get("reply", "")
-            except Exception:
-                reply = ""
-
-            print("REPLY VALUE:", repr(reply))
-            print("REPLY TYPE:", type(reply))
-
+            if not isinstance(result, dict):
+                raise ValueError("chatbot_reply_missing")
+            reply = result.get("reply", "")
+            if not isinstance(reply, str):
+                raise ValueError("chatbot_reply_missing")
+            reply = reply.strip()
             if not reply:
                 raise ValueError("chatbot_reply_missing")
-
-            reply = str(reply).strip()
-
-            if not reply:
-                raise ValueError("chatbot_reply_missing")
-
-            print("SARA REPLY:", reply)
-            print("========== CHATBOT SUCCESS ==========")
 
             renpy.invoke_in_main_thread(
                 phone_complete_ai_reply,
                 request_id,
-                reply.strip()[:600],
+                reply[:600],
                 "",
+                result,
             )
 
         except urllib.error.HTTPError as exc:
@@ -325,11 +342,6 @@ init python:
                 error_body = exc.read().decode("utf-8", "replace")
             except Exception:
                 error_body = ""
-
-            print("========== CHATBOT HTTP ERROR ==========")
-            print("HTTP CODE:", exc.code)
-            print("HTTP REASON:", exc.reason)
-            print("HTTP BODY:", error_body)
 
             renpy.invoke_in_main_thread(
                 phone_complete_ai_reply,
@@ -340,10 +352,6 @@ init python:
 
         except urllib.error.URLError as exc:
 
-            print("========== CHATBOT NETWORK ERROR ==========")
-            print("URL:", api_url)
-            print("REASON:", repr(exc.reason))
-
             renpy.invoke_in_main_thread(
                 phone_complete_ai_reply,
                 request_id,
@@ -352,10 +360,6 @@ init python:
             )
 
         except Exception as exc:
-
-            print("========== CHATBOT ERROR ==========")
-            print("TYPE:", type(exc).__name__)
-            print("ERROR:", repr(exc))
 
             renpy.invoke_in_main_thread(
                 phone_complete_ai_reply,
@@ -1093,7 +1097,7 @@ screen phone_sara_chat():
                 yalign 0.5
                 spacing 1
                 text "Сара" style "phone_text" size 23 bold True
-                text "идэвхтэй байна" style "phone_small_text" size 16 color "#10b981"
+                text "[sara_mood_label()]" style "phone_small_text" size 16 color "#10b981"
 
             null width 180
 
@@ -1187,15 +1191,18 @@ screen phone_sara_chat():
                 padding (18, 9)
                 background Solid("#f1f5f9")
 
-                input:
-                    value VariableInputValue("phone_chat_input")
-                    length 180
-                    xsize 435
-                    yalign 0.5
-                    size 20
-                    color "#111827"
-                    caret Solid("#7c3aed")
-                    default_focus True
+                if sara_blocked or sara_cooldown_until > time.time():
+                    text "[sara_mood_label()]" size 19 color "#64748b" yalign 0.5
+                else:
+                    input:
+                        value VariableInputValue("phone_chat_input")
+                        length 180
+                        xsize 435
+                        yalign 0.5
+                        size 20
+                        color "#111827"
+                        caret Solid("#7c3aed")
+                        default_focus True
 
             textbutton "ИЛГЭЭХ":
                 xysize (105, 62)
@@ -1204,5 +1211,5 @@ screen phone_sara_chat():
                 text_hover_color "#ffffff"
                 background Solid("#7c3aed")
                 hover_background Solid("#6d28d9")
-                sensitive bool(phone_chat_input.strip()) and not sara_is_typing
+                sensitive bool(phone_chat_input.strip()) and not sara_is_typing and not sara_blocked and sara_cooldown_until <= time.time()
                 action Function(phone_send_message)
