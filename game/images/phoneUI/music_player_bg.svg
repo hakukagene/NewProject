@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="624" height="984" viewBox="0 0 624 984">
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1">
+      <stop offset="0" stop-color="#082c61"/>
+      <stop offset=".34" stop-color="#145ca0"/>
+      <stop offset=".72" stop-color="#338ac2"/>
+      <stop offset="1" stop-color="#0b376a"/>
+    </linearGradient>
+    <linearGradient id="water" x2="0" y2="1">
+      <stop offset="0" stop-color="#81d3df" stop-opacity=".3"/>
+      <stop offset="1" stop-color="#072653" stop-opacity=".84"/>
+    </linearGradient>
+    <radialGradient id="haze">
+      <stop offset="0" stop-color="#f0f6e7" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#f0f6e7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="624" height="984" fill="url(#sky)"/>
+  <ellipse cx="352" cy="528" rx="330" ry="290" fill="url(#haze)"/>
+  <path d="M0 95 C145 70 152 100 310 78 S510 82 624 60" fill="none" stroke="#d8ecff" stroke-width="27" opacity=".075"/>
+  <path d="M0 615 C104 564 159 597 266 550 C402 514 473 576 624 510 L624 984 H0Z" fill="#204f8e" opacity=".38"/>
+  <path d="M0 706 C105 665 235 700 348 655 C467 623 545 668 624 622 L624 984 H0Z" fill="url(#water)"/>
+  <g opacity=".38">
+    <path d="M471 338 L471 770" stroke="#083269" stroke-width="8"/>
+    <path d="M462 368 Q400 540 395 654 L457 659 Z" fill="#d6edfc"/>
+    <path d="M482 412 L565 666 L483 666 Z" fill="#c4ddf1"/>
+    <path d="M354 756 Q468 782 584 747 Q557 790 491 808 L429 806 Q382 796 354 756 Z" fill="#102b59"/>
+    <path d="M386 785 Q494 815 564 776" fill="none" stroke="#aacfe3" stroke-width="5"/>
+  </g>
+  <path d="M0 777 Q117 756 202 780 T402 780 T624 765" fill="none" stroke="#b8f4fa" stroke-width="7" opacity=".25"/>
+  <path d="M0 804 Q150 785 265 807 T482 810 T624 804" fill="none" stroke="#b8f4fa" stroke-width="3" opacity=".23"/>
+  <path d="M0 873 Q100 852 189 876 T422 874 T624 862" fill="none" stroke="#b8f4fa" stroke-width="6" opacity=".13"/>
+  <path d="M0 899 Q110 854 213 902 Q342 849 445 901 Q535 869 624 895 L624 984 H0Z" fill="#073362" opacity=".53"/>
+</svg>

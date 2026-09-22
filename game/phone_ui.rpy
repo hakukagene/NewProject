@@ -486,6 +486,8 @@ screen phone_ui():
                         use phone_moment_profile
                     elif phone_view == "moment_settings":
                         use phone_moment_settings
+                    elif phone_view == "music":
+                        use phone_music_app
                     else:
                         use phone_moment_feed
 
@@ -733,6 +735,22 @@ screen phone_main():
                     add "pHomeSettingsIcon"
                     text "SET" style "phone_icon_text" size 18 xalign 0.5 yalign 0.5
                 text "Тохиргоо" style "phone_light_text" size 18 xalign 0.5
+
+    button:
+        style "phone_button"
+        xpos 37
+        ypos 576
+        xysize (150, 150)
+        action SetVariable("phone_view", "music")
+        vbox:
+            xalign 0.5
+            spacing 10
+            fixed:
+                xalign 0.5
+                xysize (84, 66)
+                add "pHomeMusicIcon"
+                text "♫" style "phone_icon_text" xalign 0.5 yalign 0.5
+            text "Music" style "phone_light_text" size 18 xalign 0.5
 
 screen phone_social():
     add Solid("#f8fafc")
