@@ -105,6 +105,30 @@ init python:
             renpy.restart_interaction()
 
 
+    def phone_home_drag_position(x, y):
+        """Only track upward motion from the invisible bottom gesture area."""
+        return 0, min(0, max(-340, y))
+
+
+    def phone_go_home():
+        if renpy.store.phone_view == "notes" and renpy.store.phone_notes_page == "editor":
+            phone_notes_save(silent=True)
+        if renpy.store.phone_view == "camera":
+            phone_camera_discard_pending()
+            renpy.store.phone_camera_launch_pending = False
+        renpy.store.phone_music_dialog = ""
+        renpy.store.phone_view = "home"
+        renpy.restart_interaction()
+
+
+    def phone_home_dragged(drags, drop):
+        gesture = drags[0]
+        if gesture.start_y - gesture.y >= 105:
+            phone_go_home()
+        else:
+            gesture.snap(0, 0, 0.12)
+
+
     def phone_toggle_flashlight():
         renpy.store.phone_flashlight_on = not renpy.store.phone_flashlight_on
         if renpy.store.phone_flashlight_on:
@@ -570,8 +594,29 @@ screen phone_ui():
                         use phone_moment_settings
                     elif phone_view == "music":
                         use phone_music_app
+                    elif phone_view == "camera":
+                        use phone_camera_app
+                    elif phone_view == "gallery":
+                        use phone_gallery_app
+                    elif phone_view == "notes":
+                        use phone_notes_app
                     else:
                         use phone_moment_feed
+
+                    # An invisible 30px gesture region inside the display.
+                    # It sits above app controls and does not draw a home line.
+                    draggroup:
+                        xysize (624, 984)
+                        drag:
+                            xpos 0
+                            ypos 0
+                            draggable True
+                            droppable False
+                            drag_raise False
+                            drag_handle (0, 954, 624, 30)
+                            drag_offscreen phone_home_drag_position
+                            dragged phone_home_dragged
+                            add Solid("#00000000") xysize (624, 984)
 
         # Keep the bezel, rounded corners, and notch stationary above every
         # moving page. Transparent screen pixels remain fully interactive.
@@ -673,7 +718,7 @@ screen phone_lockscreen():
         padding (0, 0)
         background None
         hover_background None
-        action Notify("Камер дараагийн шатанд нэмэгдэнэ.")
+        action Function(phone_camera_open)
         fixed:
             add "pQuickActionBackground"
         fixed:
@@ -765,7 +810,7 @@ screen phone_main():
         button:
             style "phone_button"
             xysize (150, 150)
-            action Notify("Камер дараагийн шатанд нэмэгдэнэ.")
+            action Function(phone_camera_open)
             vbox:
                 xalign 0.5
                 spacing 10
@@ -779,7 +824,7 @@ screen phone_main():
         button:
             style "phone_button"
             xysize (150, 150)
-            action Notify("Зураг дараагийн шатанд нэмэгдэнэ.")
+            action [SetVariable("phone_gallery_selected", -1), SetVariable("phone_view", "gallery")]
             vbox:
                 xalign 0.5
                 spacing 10
@@ -793,7 +838,7 @@ screen phone_main():
         button:
             style "phone_button"
             xysize (150, 150)
-            action Notify("Тэмдэглэл дараагийн шатанд нэмэгдэнэ.")
+            action [SetVariable("phone_notes_page", "list"), SetVariable("phone_view", "notes")]
             vbox:
                 xalign 0.5
                 spacing 10

@@ -380,9 +380,9 @@ screen phone_music_library():
     use phone_music_header
 
     hbox:
-        xpos 14
+        xpos 16
         ypos 135
-        spacing 2
+        spacing 0
         for icon, label, count, view in phone_music_navigation():
             button:
                 xysize (148, 102)
@@ -392,9 +392,12 @@ screen phone_music_library():
                 action Function(phone_music_open, view)
                 vbox:
                     xalign 0.5
-                    ypos 2
-                    spacing 2
-                    text "[icon]" xalign 0.5 size 38 color "#ffcf43"
+                    yalign 0.5
+                    spacing 3
+                    fixed:
+                        xalign 0.5
+                        xysize (60, 42)
+                        text "[icon]" xalign 0.5 yalign 0.5 size 34 color "#ffcf43"
                     text "[label]" xalign 0.5 size 18 color "#ffffff"
                     text "([count])" xalign 0.5 size 15 color "#d2e7ff"
 
@@ -404,13 +407,15 @@ screen phone_music_library():
         ypos 258
         size 20
         color "#ffffff"
-    textbutton "+":
-        xpos 494
-        ypos 248
-        text_size 31
-        text_color "#ffffff"
+    button:
+        xpos 514
+        ypos 250
+        xysize (72, 48)
+        padding (0, 0)
         background None
+        hover_background Solid("#ffffff1b")
         action SetVariable("phone_music_dialog", "new")
+        text "+" xalign 0.5 yalign 0.5 size 33 color "#ffffff"
 
     viewport:
         xpos 22
@@ -431,11 +436,19 @@ screen phone_music_library():
                     action Function(phone_music_open_group, "playlist", key)
                     fixed:
                         xysize (578, 90)
-                        add Solid("#2367a6aa") xpos 8 ypos 18 xysize (76, 56)
-                        text "[icon]" xpos 25 ypos 25 size 30 color "#ffffff"
-                        text "[phone_music_safe(title)]" xpos 102 ypos 15 size 21 color "#ffffff" xmaximum 415
-                        text "[count] songs" xpos 102 ypos 53 size 16 color "#c4dcfa"
-                        text "›" xpos 538 ypos 22 size 32 color "#ffffff"
+                        fixed:
+                            xpos 12
+                            yalign 0.5
+                            xysize (76, 58)
+                            add Solid("#2367a6aa")
+                            text "[icon]" xalign 0.5 yalign 0.5 size 32 color "#ffffff"
+                        vbox:
+                            xpos 106
+                            yalign 0.5
+                            spacing 4
+                            text "[phone_music_safe(title)]" size 21 color "#ffffff" xmaximum 400
+                            text "[count] songs" size 16 color "#c4dcfa"
+                        text "›" xpos 536 yalign 0.5 size 32 color "#ffffff"
 
     textbutton "⇄":
         xpos 500
@@ -704,20 +717,40 @@ screen phone_music_popup():
     frame:
         xalign 0.5
         yalign 0.5
-        xysize (550, 458)
-        background Solid("#0c3d78")
-        padding (22, 20)
+        xsize 504
+        background Solid("#153f73")
+        padding (24, 22)
         vbox:
-            spacing 14
+            xfill True
+            spacing 12
             if phone_music_dialog == "menu":
-                text "Music Player" size 28 color "#ffffff"
-                textbutton "Утасны нүүр рүү буцах" text_size 21 text_color "#ffffff" action [SetVariable("phone_view", "home"), SetVariable("phone_music_dialog", "")]
-                textbutton "Tracks" text_size 21 text_color "#ffffff" action Function(phone_music_open, "tracks")
-                textbutton "Playlists" text_size 21 text_color "#ffffff" action Function(phone_music_open, "library")
+                text "Music Player" size 27 bold True color "#ffffff" xalign 0.5
+                add Solid("#ffffff30") xysize (456, 1)
+                textbutton "⌂   Утасны нүүр":
+                    xsize 456
+                    text_size 21
+                    text_color "#ffffff"
+                    background Solid("#ffffff10")
+                    padding (16, 12)
+                    action Function(phone_go_home)
+                textbutton "♫   Tracks":
+                    xsize 456
+                    text_size 21
+                    text_color "#ffffff"
+                    background Solid("#ffffff10")
+                    padding (16, 12)
+                    action Function(phone_music_open, "tracks")
+                textbutton "▤   Playlists":
+                    xsize 456
+                    text_size 21
+                    text_color "#ffffff"
+                    background Solid("#ffffff10")
+                    padding (16, 12)
+                    action Function(phone_music_open, "library")
             elif phone_music_dialog == "new":
                 text "Шинэ playlist" size 27 color "#ffffff"
                 frame:
-                    xysize (490, 60)
+                    xysize (456, 60)
                     background Solid("#ffffff27")
                     padding (12, 8)
                     input value VariableInputValue("phone_music_new_name") length 28 color "#ffffff" size 22
@@ -728,8 +761,14 @@ screen phone_music_popup():
                 text "[selected_title]" size 25 color "#ffffff"
                 if phone_music_list_kind == "playlist" and phone_music_list_key in phone_music_custom_playlists and phone_music_selected in phone_music_custom_playlists[phone_music_list_key]:
                     textbutton "Playlist-аас хасах" text_size 20 text_color "#ffffff" action Function(phone_music_remove_from_playlist, phone_music_selected, phone_music_list_key)
-                for name in phone_music_custom_playlists:
-                    textbutton "[phone_music_safe(name)]-д нэмэх" text_size 20 text_color "#ffffff" action Function(phone_music_add_to_playlist, phone_music_selected, name)
+                viewport:
+                    xysize (456, min(310, max(55, len(phone_music_custom_playlists) * 58)))
+                    mousewheel True
+                    draggable True
+                    vbox:
+                        spacing 4
+                        for name in phone_music_custom_playlists:
+                            textbutton "[phone_music_safe(name)]-д нэмэх" text_size 20 text_color "#ffffff" action Function(phone_music_add_to_playlist, phone_music_selected, name)
             textbutton "Хаах":
                 text_size 20
                 text_color "#aacff6"
