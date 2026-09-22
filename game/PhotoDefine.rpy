@@ -47,6 +47,7 @@ image pHomeCameraIcon = AlphaMask(Solid("#0ea5e9", xysize=(84, 66)), "images/pho
 image pHomeGalleryIcon = AlphaMask(Solid("#ec4899", xysize=(84, 66)), "images/phoneUI/home_app_icon_mask.svg")
 image pHomeNotesIcon = AlphaMask(Solid("#f59e0b", xysize=(84, 66)), "images/phoneUI/home_app_icon_mask.svg")
 image pHomeSettingsIcon = AlphaMask(Solid("#64748b", xysize=(84, 66)), "images/phoneUI/home_app_icon_mask.svg")
+image pHomeMusicIcon = AlphaMask(Solid("#1b77c4", xysize=(84, 66)), "images/phoneUI/home_app_icon_mask.svg")
 image pHomeStoryIcon = Transform("pHomeNotesIcon", xysize=(68, 53))
 
 
