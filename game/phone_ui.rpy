@@ -264,19 +264,25 @@ init python:
                 if len(raw_body) > 32768:
                     raise ValueError("chatbot_response_too_large")
 
-            result = json.loads(
-                raw_body.decode("utf-8")
-            )
+            result = json.loads(raw_body.decode("utf-8"))
 
             print("JSON RESULT:", result)
+            print("RESULT TYPE:", type(result))
 
-            reply = (
-                result.get("reply", "")
-                if isinstance(result, dict)
-                else ""
-            )
+            try:
+                reply = result.get("reply", "")
+            except Exception:
+                reply = ""
 
-            if not isinstance(reply, str) or not reply.strip():
+            print("REPLY VALUE:", repr(reply))
+            print("REPLY TYPE:", type(reply))
+
+            if not reply:
+                raise ValueError("chatbot_reply_missing")
+
+            reply = str(reply).strip()
+
+            if not reply:
                 raise ValueError("chatbot_reply_missing")
 
             print("SARA REPLY:", reply)
