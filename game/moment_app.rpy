@@ -7,6 +7,10 @@
 
 default moment_theme = "midnight"
 default moment_relationship = 28
+default sara_mood = "neutral"
+default sara_boundary_strikes = 0
+default sara_blocked = False
+default sara_cooldown_until = 0.0
 default moment_story_replied = False
 default moment_active_contact = "sara"
 default moment_profile_handle = "tsogoo.player"
@@ -49,6 +53,8 @@ default moment_notifications = [
 
 
 init python:
+    import time
+
     MOMENT_THEME_ORDER = ("midnight", "violet", "daylight")
     MOMENT_CLOSE_FRIEND_THRESHOLD = 60
     MOMENT_FEED_CAROUSEL_WIDTH = 624
@@ -260,6 +266,8 @@ init python:
 
 
     def moment_relationship_level():
+        if renpy.store.sara_blocked:
+            return "Харилцаа тасарсан"
         value = renpy.store.moment_relationship
         if value >= 80:
             return "Онцгой хүн"
@@ -274,7 +282,19 @@ init python:
         return (
             renpy.store.moment_relationship
             >= MOMENT_CLOSE_FRIEND_THRESHOLD
+            and not renpy.store.sara_blocked
         )
+
+
+    def sara_mood_label():
+        if renpy.store.sara_blocked:
+            return "Харилцаагаа зогсоосон"
+        if renpy.store.sara_cooldown_until > time.time():
+            return "Түр завсарлага авсан"
+        return {
+            "neutral": "Тайван", "warm": "Дотно", "guarded": "Болгоомжтой",
+            "upset": "Гомдсон",
+        }.get(renpy.store.sara_mood, "Тайван")
 
 
     def moment_active_notifications():
@@ -466,6 +486,9 @@ init python:
 
 
     def moment_reply_story(reply_text, relationship_points):
+        if renpy.store.sara_blocked:
+            renpy.notify("Сара харилцаагаа зогсоосон байна.")
+            return
         if renpy.store.moment_story_replied:
             renpy.store.moment_active_contact = "sara"
             renpy.store.phone_view = "chat"
@@ -550,7 +573,6 @@ init python:
             return
 
         phone_send_message()
-        moment_adjust_relationship(1, "Саратай DM бичсэн")
 
 
     def moment_send_active_dm():
@@ -1664,12 +1686,14 @@ screen phone_moment_relationship():
         if relationship_width > 0:
             add Solid(theme["accent"]) xpos 18 ypos 138 xysize (relationship_width, 18)
 
-        text "Story reply, DM болон таны сонголтууд энэ оноонд нөлөөлнө.":
+        text "Харилцах арга, story reply болон сонголтууд энэ оноонд нөлөөлнө.":
             xpos 18
             ypos 174
             xmaximum 540
             size 15
             color theme["muted"]
+
+        text "Сара: [sara_mood_label()]" xpos 142 ypos 101 size 16 color theme["accent_alt"]
 
     frame:
         xpos 24
@@ -1684,7 +1708,15 @@ screen phone_moment_relationship():
                 size 15
                 bold True
                 color (theme["success"] if close_friend else theme["accent_alt"])
-            if close_friend:
+            if sara_blocked:
+                text "Сара харилцаагаа зогсоосон":
+                    size 18
+                    bold True
+                    color theme["hot"]
+                text "Close Friends контент одоогоор харагдахгүй.":
+                    size 15
+                    color theme["muted"]
+            elif close_friend:
                 text "Нэмэлт story болон post нээгдсэн":
                     size 18
                     bold True
@@ -1911,10 +1943,12 @@ screen phone_moment_chat():
     $ active_is_sara = moment_active_contact == "sara"
     $ active_typing = active_is_sara and sara_is_typing
     $ typing_text = "%s бичиж байна..." % contact["name"]
-    $ can_send = bool(phone_chat_input.strip()) and not active_typing
+    $ sara_unavailable = active_is_sara and (sara_blocked or sara_cooldown_until > time.time())
+    $ can_send = bool(phone_chat_input.strip()) and not active_typing and not sara_unavailable
     $ final_icon_path = "images/phoneUI/Momenticon/send.png" if can_send else "images/phoneUI/Momenticon/add.png"
     $ final_icon_crop = (398, 389, 403, 396) if can_send else None
-    $ final_button_action = Function(moment_send_active_dm) if can_send else Notify("Attachment menu дараагийн шатанд нэмэгдэнэ.")
+    $ unavailable_message = "Сара харилцаагаа зогсоосон байна." if sara_blocked else "Сара түр завсарлага авч байна."
+    $ final_button_action = Function(moment_send_active_dm) if can_send else Notify(unavailable_message if sara_unavailable else "Attachment menu дараагийн шатанд нэмэгдэнэ.")
 
     add Solid(theme["bg"])
     use phone_status_bar(dark=theme["status_light"])
@@ -1948,7 +1982,7 @@ screen phone_moment_chat():
         )
         text contact["initial"] xpos 101 xanchor 0.5 ypos 31 size 21 bold True color "#ffffff"
         text contact["handle"] xpos 148 ypos 14 size 23 bold True color theme["text"]
-        text contact["status"] xpos 148 ypos 47 size 14 color theme["success"]
+        text (sara_mood_label() if active_is_sara else contact["status"]) xpos 148 ypos 47 size 14 color theme["success"]
 
         textbutton ("BOND [moment_relationship]" if active_is_sara else "PROFILE"):
             xpos 594
@@ -2139,23 +2173,24 @@ screen phone_moment_chat():
                 icon_crop=(317, 357, 346, 266),
             )
 
-            if not phone_chat_input:
-                text "Message...":
+            if not phone_chat_input or sara_unavailable:
+                text (sara_mood_label() if sara_unavailable else "Message..."):
                     xpos 84
                     ypos 34
                     size 18
                     color theme["muted"]
 
-            input:
-                xpos 84
-                ypos 31
-                value VariableInputValue("phone_chat_input")
-                length 180
-                xsize 238
-                size 18
-                color theme["text"]
-                caret Solid(theme["accent_alt"], xsize=2)
-                default_focus True
+            if not sara_unavailable:
+                input:
+                    xpos 84
+                    ypos 31
+                    value VariableInputValue("phone_chat_input")
+                    length 180
+                    xsize 238
+                    size 18
+                    color theme["text"]
+                    caret Solid(theme["accent_alt"], xsize=2)
+                    default_focus True
 
             use moment_composer_icon(
                 "images/phoneUI/Momenticon/mic.svg",

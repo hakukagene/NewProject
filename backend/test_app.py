@@ -41,7 +41,11 @@ class ChatbotApiTests(unittest.TestCase):
         self.assertEqual(response.get_json(), {"error": "service_not_configured"})
 
     @patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=False)
-    @patch.object(chatbot, "generate_reply", return_value="Тэгье, дараа ярья 😊")
+    @patch.object(chatbot, "generate_reply", return_value={
+        "reply": "Тэгье, дараа ярья 😊", "signal": "neutral", "relationship_delta": 0,
+        "mood": "neutral", "boundary_strikes": 0, "blocked": False,
+        "pause_seconds": 0,
+    })
     def test_chat_reply(self, mocked_reply):
         response = self.client.post(
             "/api/chat",
@@ -53,6 +57,7 @@ class ChatbotApiTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["reply"], "Тэгье, дараа ярья 😊")
+        self.assertEqual(response.get_json()["relationship_delta"], 0)
         mocked_reply.assert_called_once()
 
     @patch.dict(
@@ -64,7 +69,7 @@ class ChatbotApiTests(unittest.TestCase):
     def test_generate_reply_uses_gemini_and_deduplicates_history(self, mocked_urlopen):
         mocked_urlopen.return_value = io.BytesIO(
             json.dumps(
-                {"candidates": [{"content": {"parts": [{"text": "Тийм ээ, санаж байна."}]}}]}
+                {"candidates": [{"content": {"parts": [{"text": json.dumps({"reply": "Тийм ээ, санаж байна.", "signal": "neutral"}, ensure_ascii=False)}]}}]}
             ).encode("utf-8")
         )
         reply = chatbot.generate_reply(
@@ -78,7 +83,8 @@ class ChatbotApiTests(unittest.TestCase):
             }
         )
 
-        self.assertEqual(reply, "Тийм ээ, санаж байна.")
+        self.assertEqual(reply["reply"], "Тийм ээ, санаж байна.")
+        self.assertEqual(reply["relationship_delta"], 0)
         gemini_request = mocked_urlopen.call_args.args[0]
         self.assertEqual(mocked_urlopen.call_args.kwargs["timeout"], 25)
         self.assertEqual(gemini_request.get_method(), "POST")
@@ -89,12 +95,55 @@ class ChatbotApiTests(unittest.TestCase):
         self.assertEqual(gemini_request.get_header("X-goog-api-key"), "test-key")
         body = json.loads(gemini_request.data.decode("utf-8"))
         self.assertIn("Сара", body["system_instruction"]["parts"][0]["text"])
+        self.assertEqual(body["generationConfig"]["responseMimeType"], "application/json")
+        self.assertEqual(body["generationConfig"]["responseSchema"]["required"], ["reply", "signal"])
         self.assertEqual([turn["role"] for turn in body["contents"]], ["user", "model", "user"])
         self.assertEqual(body["contents"][-1]["parts"], [{"text": "Тэр газрыг санаж байна уу?"}])
         self.assertEqual(
             chatbot._gemini_contents([], "Сайн уу?"),
             [{"role": "user", "parts": [{"text": "Сайн уу?"}]}],
         )
+
+    def test_personality_progression_warning_apology_and_block(self):
+        state = {"relationship": 64, "boundary_strikes": 0}
+        first = chatbot._sara_result(state, {"reply": "Тэгж хэлэх нь тухгүй байна.", "signal": "rude"})
+        self.assertEqual((first["relationship_delta"], first["boundary_strikes"]), (-3, 1))
+        self.assertFalse(first["blocked"])
+
+        state.update(relationship=61, boundary_strikes=first["boundary_strikes"])
+        second = chatbot._sara_result(state, {"reply": "", "signal": "pressuring"})
+        self.assertEqual(second["pause_seconds"], 120)
+        self.assertIn("завсарлая", second["reply"])
+
+        apology = chatbot._sara_result({"relationship": 57, "boundary_strikes": 2},
+                                      {"reply": "За, сонслоо. Надад хугацаа хэрэгтэй.", "signal": "apology"})
+        self.assertEqual((apology["relationship_delta"], apology["boundary_strikes"]), (1, 1))
+        self.assertEqual(apology["mood"], "guarded")
+        next_message = chatbot._sara_result({"relationship": 58, "boundary_strikes": 1},
+                                           {"reply": "Сонсож байна.", "signal": "neutral"})
+        self.assertEqual(next_message["mood"], "guarded")
+
+        blocked = chatbot._sara_result({"relationship": 57, "boundary_strikes": 2},
+                                      {"reply": "Сайн уу!", "signal": "harassment"})
+        self.assertTrue(blocked["blocked"])
+        self.assertEqual(blocked["boundary_strikes"], 4)
+        self.assertNotEqual(blocked["reply"], "Сайн уу!")
+
+    def test_model_cannot_set_its_own_score_or_force_block(self):
+        result = chatbot._sara_result({"relationship": 99, "boundary_strikes": 0},
+                                     {"reply": "Сайн уу", "signal": "thoughtful", "relationship_delta": 1000, "blocked": True})
+        self.assertEqual(result["relationship_delta"], 1)
+        self.assertFalse(result["blocked"])
+        result = chatbot._sara_result({"relationship": 45, "boundary_strikes": 0},
+                                     {"reply": "Сайн уу", "signal": "fabricated"})
+        self.assertEqual(result["relationship_delta"], 0)
+
+    def test_blocked_chat_does_not_call_model(self):
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=False), \
+             patch.object(chatbot, "generate_reply") as model:
+            response = self.client.post("/api/chat", json={"message": "Сайн уу", "blocked": True})
+        self.assertEqual(response.status_code, 403)
+        model.assert_not_called()
 
     @patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=False)
     @patch.object(chatbot.urllib.request, "urlopen")

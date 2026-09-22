@@ -173,6 +173,7 @@ init python:
 
 
 screen phone_camera_app():
+    $ capture_action = [SetVariable("phone_camera_launch_pending", True), Function(phone_camera_launch)] if renpy.android else NullAction()
     add Solid("#0b1120")
     use phone_status_bar(dark=True)
     if phone_camera_launch_pending:
@@ -196,7 +197,7 @@ screen phone_camera_app():
         background Solid("#ffffff")
         hover_background Solid("#d7f6ff")
         padding (0, 0)
-        action [SetVariable("phone_camera_launch_pending", True), Function(phone_camera_launch)] if renpy.android else NullAction()
+        action capture_action
         text "◎" xalign 0.5 yalign 0.5 size 72 color "#0b1120"
     textbutton "Зураг үзэх" xalign 0.5 ypos 945 text_size 19 text_color "#62d8fa" background None action [SetVariable("phone_gallery_selected", -1), SetVariable("phone_view", "gallery")]
 
