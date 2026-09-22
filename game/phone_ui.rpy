@@ -11,6 +11,7 @@ default phone_unlock_pending = False
 default phone_flashlight_on = False
 default phone_chat_input = ""
 default phone_chat_scroll_pending = False
+default phone_chat_draft_scroll_pending = False
 default phone_chat_request_id = 0
 default phone_chatbot_last_error = ""
 default sara_unread_messages = 2
@@ -47,6 +48,20 @@ init python:
         "Мессежийг чинь харлаа. Холболт орж ирэхээр үргэлжлүүлээд ярья.",
         "Одоохондоо сүлжээ муу байна аа. Жаахан дараа дахин бичээрэй.",
     )
+
+
+    class PhoneChatDraftInputValue(VariableInputValue):
+        """Keep the conversation and composer scrolled as the draft grows."""
+
+        def __init__(self):
+            super(PhoneChatDraftInputValue, self).__init__("phone_chat_input")
+
+        def set_text(self, value):
+            previous = renpy.store.phone_chat_input
+            super(PhoneChatDraftInputValue, self).set_text(value)
+            if value != previous:
+                renpy.store.phone_chat_scroll_pending = True
+                renpy.store.phone_chat_draft_scroll_pending = True
 
 
     def phone_current_time():
@@ -371,6 +386,7 @@ init python:
                 request_id,
                 reply,
                 "",
+                result,
             )
 
             return

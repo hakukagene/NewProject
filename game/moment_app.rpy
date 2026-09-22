@@ -54,9 +54,27 @@ default moment_notifications = [
 
 init python:
     import time
+    import unicodedata
 
     MOMENT_THEME_ORDER = ("midnight", "violet", "daylight")
     MOMENT_CLOSE_FRIEND_THRESHOLD = 60
+
+
+    def moment_chat_draft_rows(value):
+        """Reserve vertical space for a wrapped draft, capped at nine lines."""
+        rows = 1
+        columns = 0
+        for character in value:
+            if character == "\n":
+                rows += 1
+                columns = 0
+                continue
+            width = 2 if unicodedata.east_asian_width(character) in ("W", "F") else 1
+            if columns + width > 18:
+                rows += 1
+                columns = 0
+            columns += width
+        return min(9, rows)
     MOMENT_FEED_CAROUSEL_WIDTH = 624
     MOMENT_FEED_CAROUSEL_SLIDE_COUNT = 3
     MOMENT_FEED_CAROUSEL_SWIPE_DISTANCE = 80
@@ -726,14 +744,14 @@ screen moment_bottom_nav(active="home"):
             )
 
 
-screen moment_composer_icon(icon_path, button_action, button_x, accent=False, icon_crop=None):
+screen moment_composer_icon(icon_path, button_action, button_x, accent=False, icon_crop=None, button_y=20):
     $ theme = moment_theme_colors()
     $ icon_color = "#ffffff" if accent else theme["text"]
     $ icon_source = Crop(icon_crop, icon_path) if icon_crop else icon_path
 
     button:
         xpos button_x
-        ypos 20
+        ypos button_y
         xysize (54, 50)
         padding (0, 0)
         background None
@@ -1949,6 +1967,9 @@ screen phone_moment_chat():
     $ final_icon_crop = (398, 389, 403, 396) if can_send else None
     $ unavailable_message = "Сара харилцаагаа зогсоосон байна." if sara_blocked else "Сара түр завсарлага авч байна."
     $ final_button_action = Function(moment_send_active_dm) if can_send else Notify(unavailable_message if sara_unavailable else "Attachment menu дараагийн шатанд нэмэгдэнэ.")
+    $ composer_height = 92 + (moment_chat_draft_rows("" if sara_unavailable else phone_chat_input) - 1) * 24
+    $ composer_top = 984 - composer_height
+    $ composer_icon_y = composer_height - 72
 
     add Solid(theme["bg"])
     use phone_status_bar(dark=theme["status_light"])
@@ -1999,7 +2020,7 @@ screen phone_moment_chat():
         xpos 18
         ypos 150
         xsize 588
-        ysize 730
+        ysize composer_top - 162
         mousewheel True
         draggable True
         scrollbars None
@@ -2068,6 +2089,7 @@ screen phone_moment_chat():
                             spacing 5
                             text phone_escape_chat_text(msg["text"]):
                                 size 19
+                                language "anywhere"
                                 color "#ffffff"
                             text msg.get("time", ""):
                                 xalign 1.0
@@ -2105,6 +2127,7 @@ screen phone_moment_chat():
                                 spacing 5
                                 text phone_escape_chat_text(msg["text"]):
                                     size 19
+                                    language "anywhere"
                                     color theme["text"]
                                 text msg.get("time", ""):
                                     size 12
@@ -2145,25 +2168,29 @@ screen phone_moment_chat():
             SetVariable("phone_chat_scroll_pending", False),
         ]
 
+    if phone_chat_draft_scroll_pending and not sara_unavailable:
+        timer 0.01 action [
+            Scroll("moment_chat_draft_viewport", "vertical increase", amount=1000000),
+            SetVariable("phone_chat_draft_scroll_pending", False),
+        ]
+
     frame:
         xpos 0
-        ypos 892
-        xysize (624, 92)
+        ypos composer_top
+        xysize (624, composer_height)
         padding (0, 0)
         background Solid(theme["surface"])
 
         fixed:
-            xysize (624, 92)
+            xysize (624, composer_height)
 
-            add Transform(
+            add Frame(
                 AlphaMask(
                     Solid(theme["surface_alt"], xysize=(600, 66)),
                     "images/phoneUI/Momenticon/composer_pill_mask.svg",
                 ),
-                xpos=12,
-                ypos=13,
-                xysize=(600, 66),
-            )
+                32, 30, 32, 30,
+            ) xpos 12 ypos 13 xysize (600, composer_height - 26)
 
             use moment_composer_icon(
                 "images/phoneUI/CameraIcon.png",
@@ -2171,6 +2198,7 @@ screen phone_moment_chat():
                 20,
                 accent=True,
                 icon_crop=(317, 357, 346, 266),
+                button_y=composer_icon_y,
             )
 
             if not phone_chat_input or sara_unavailable:
@@ -2181,32 +2209,47 @@ screen phone_moment_chat():
                     color theme["muted"]
 
             if not sara_unavailable:
-                input:
+                viewport:
+                    id "moment_chat_draft_viewport"
                     xpos 84
                     ypos 31
-                    value VariableInputValue("phone_chat_input")
-                    length 180
                     xsize 238
-                    size 18
-                    color theme["text"]
-                    caret Solid(theme["accent_alt"], xsize=2)
-                    default_focus True
+                    ysize composer_height - 46
+                    mousewheel True
+                    draggable True
+                    scrollbars None
+                    yinitial 1.0
+
+                    input:
+                        value PhoneChatDraftInputValue()
+                        length 180
+                        xsize 238
+                        multiline True
+                        copypaste True
+                        language "anywhere"
+                        size 18
+                        color theme["text"]
+                        caret Solid(theme["accent_alt"], xsize=2)
+                        default_focus True
 
             use moment_composer_icon(
                 "images/phoneUI/Momenticon/mic.svg",
                 Notify("Voice message дараагийн шатанд нэмэгдэнэ."),
                 330,
+                button_y=composer_icon_y,
             )
             use moment_composer_icon(
                 "images/phoneUI/Momenticon/picture.png",
                 Notify("Gallery дараагийн шатанд нэмэгдэнэ."),
                 390,
                 icon_crop=(446, 446, 308, 308),
+                button_y=composer_icon_y,
             )
             use moment_composer_icon(
                 "images/phoneUI/Momenticon/sticker.png",
                 Notify("Sticker дараагийн шатанд нэмэгдэнэ."),
                 450,
+                button_y=composer_icon_y,
             )
             use moment_composer_icon(
                 final_icon_path,
@@ -2214,6 +2257,7 @@ screen phone_moment_chat():
                 510,
                 accent=can_send,
                 icon_crop=final_icon_crop,
+                button_y=composer_icon_y,
             )
 
 
