@@ -3,7 +3,7 @@
 # After the Render service is deployed, replace YOUR-RENDER-SERVICE with the
 # service name shown in the Render dashboard. Never put OPENAI_API_KEY here.
 
-define MOMENT_CHATBOT_API_URL = "https://moment-chatbot.onrender.com/api/chat"
+define MOMENT_CHATBOT_API_URL = "https://moment-chatbot-e41p.onrender.com/api/chat"
 # Render Free can take about a minute to wake after an idle spin-down. This is
 # a background request, so the longer timeout does not freeze the game UI.
 define MOMENT_CHATBOT_REQUEST_TIMEOUT = 75.0

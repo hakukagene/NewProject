@@ -159,7 +159,7 @@ def generate_reply(payload: dict[str, Any]) -> str:
     model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite").strip() or "gemini-2.5-flash-lite"
     if not re.fullmatch(r"[A-Za-z0-9._-]+", model):
         raise ValueError("GEMINI_MODEL contains invalid characters")
-
+    app.logger.info("Gemini model in use: %s", model)
     gemini_request = urllib.request.Request(
         "%s/%s:generateContent" % (GEMINI_API_ROOT, model),
         data=json.dumps(
@@ -181,6 +181,18 @@ def generate_reply(payload: dict[str, Any]) -> str:
         with urllib.request.urlopen(gemini_request, timeout=25) as response:
             raw = response.read(MAX_UPSTREAM_BYTES + 1)
     except urllib.error.HTTPError as exc:
+        try:
+            error_body = exc.read().decode("utf-8", "replace")
+        except Exception:
+            error_body = ""
+
+        app.logger.error(
+            "GEMINI ERROR | HTTP %s | MODEL=%s | BODY=%s",
+            exc.code,
+            model,
+            error_body,
+        )
+
         raise GeminiUpstreamError(exc.code) from exc
 
     if len(raw) > MAX_UPSTREAM_BYTES:

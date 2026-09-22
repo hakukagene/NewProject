@@ -182,7 +182,7 @@ init python:
         renpy.store.phone_music_current = path
         phone_music_record_play(path)
         renpy.music.play(order[start:] + order[:start], channel="phone_music",
-                         loop=False, fadeout=0.2, fadein=0.2)
+                        loop=False, fadeout=0.2, fadein=0.2)
 
 
     def phone_music_sync():
@@ -204,7 +204,7 @@ init python:
         playing = renpy.music.get_playing(channel="phone_music")
         if playing:
             renpy.music.set_pause(not renpy.music.get_pause(channel="phone_music"),
-                                  channel="phone_music")
+                                channel="phone_music")
             return
         track = phone_music_selected_track()
         if track:
@@ -336,22 +336,31 @@ screen phone_music_app():
 
 
 screen phone_music_header(title="Music Player"):
+
     fixed:
         ypos 42
         xysize (624, 78)
+
         textbutton ("☰" if phone_music_view == "library" else "‹"):
             xpos 25
             yalign 0.5
             text_size 32
             text_color "#ffffff"
             background None
-            action SetVariable("phone_music_dialog", "menu") if phone_music_view == "library" else Function(phone_music_back)
+
+            action If(
+                phone_music_view == "library",
+                SetVariable("phone_music_dialog", "menu"),
+                Function(phone_music_back)
+            )
+
         text "[phone_music_safe(title)]":
             xpos 96
             yalign 0.5
             size 26
             color "#ffffff"
             xmaximum 425
+
         if phone_music_view != "search":
             button:
                 xpos 548
@@ -361,7 +370,9 @@ screen phone_music_header(title="Music Player"):
                 background None
                 hover_background Solid("#ffffff1a")
                 action Function(phone_music_open, "search")
+
                 add "images/phoneUI/music_search.svg" xalign 0.5 yalign 0.5
+
     add Solid("#ffffff32") ypos 119 xysize (624, 1)
 
 
