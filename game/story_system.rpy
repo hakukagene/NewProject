@@ -1,33 +1,33 @@
 # Save-backed story state. Existing Sara saves retain their original UI.
-default kh_story_active = False
-default kh_day_one_complete = False
-default kh_location = "Өдөр 1"
-default kh_relationships = {"khulan": 20, "anu": 35, "chingun": 40, "family": 20, "badral": 20, "dad": 40, "confidence": 20}
-default kh_flags = {}
-default kh_inspected = []
-default kh_following_saruul = False
-default kh_night_feed = False
-default kh_notice = ""
-default kh_post_likes = []
-default kh_phone_tab = "feed"
-default kh_story_contact = "khulan"
-default kh_dm_replied = []
+default story_active = False
+default story_day_one_complete = False
+default story_location = "Өдөр 1"
+default story_relationships = {"khulan": 20, "anu": 35, "chingun": 40, "family": 20, "badral": 20, "dad": 40, "confidence": 20}
+default story_flags = {}
+default story_inspected = []
+default story_following_saruul = False
+default story_night_feed = False
+default story_notice = ""
+default story_post_likes = []
+default story_phone_tab = "feed"
+default story_story_contact = "khulan"
+default story_dm_replied = []
 
 init python:
-    KH_CONTACTS = {
+    STORY_CONTACTS = {
         "sara": {"name": "Болор", "handle": "bolor.bolor", "initial": "Б", "color": "#55c9bc", "status": "Америк · Businesswoman", "preview": "Өглөөний мэнд."},
         "khulan": {"name": "Хулан", "handle": "khulan.art", "initial": "Х", "color": "#ed95b3", "status": "Зураг зурж байна", "preview": "Хариад бичээрэй."},
         "anu": {"name": "Ану", "handle": "anu.cover", "initial": "А", "color": "#b4a0ea", "status": "Cover дуу", "preview": "Сайхан амраарай."},
         "saruul": {"name": "Саруул", "handle": "saruul.star", "initial": "С", "color": "#f3ad6b", "status": "Сургуулийн од", "preview": "Таныг дагалаа."},
         "chingun": {"name": "Чингүн", "handle": "chingun", "initial": "Ч", "color": "#87baf1", "status": "Идэвхтэй", "preview": "Анда, гэртээ харьсан уу?"},
     }
-    KH_POSTS = (
+    STORY_POSTS = (
         ("khulan", "Өдрийн гэрэл. Шинэ дэвтэр. Шинэ танил.", "Шинэ зураг"),
         ("anu", "Зарим дууг ганцхан хүнд зориулж дуулдаг.", "Гитартай орой"),
         ("saruul", "Шинэ улирал эхэллээ.", "Campus day"),
         ("chingun", "Өнөөдөр гүйлтийн нормоо давуулчихлаа.", "Найзууд"),
     )
-    KH_INSPECTIONS = {
+    STORY_INSPECTIONS = {
         "classroom": [
             ("class_window", "Цонх", "Нар Билгүүний ширээн дээр тусжээ. Хулан дэвтрээ яаран хаав."),
             ("class_students", "Ангийнхан", "Чингүн Хулангийн дэргэд сууна. Хулан зургийн дэвтэртэйгээ иржээ."),
@@ -40,20 +40,20 @@ init python:
         ],
     }
 
-    def kh_change(person, amount):
-        state = dict(renpy.store.kh_relationships)
+    def change_story_relationship(person, amount):
+        state = dict(renpy.store.story_relationships)
         state[person] = max(0, min(100, state.get(person, 20) + amount))
-        renpy.store.kh_relationships = state
+        renpy.store.story_relationships = state
 
-    def kh_background(scene_id):
+    def story_background(scene_id):
         path = "images/story/%s.webp" % scene_id
         if renpy.loadable(path):
             return Transform(path, xysize=(1920, 1080))
         night = scene_id in ("police_car", "bilguun_home", "bilguun_room", "dream")
         return Solid("#152132" if night else "#34424b")
 
-    def kh_start_story():
-        renpy.store.kh_story_active = True
+    def start_chapter_one():
+        renpy.store.story_active = True
         renpy.store.moment_profile_name = "Билгүүн"
         renpy.store.moment_profile_handle = "bilguun"
         renpy.store.moment_profile_bio = "Оюутан · Эхний өдөр"
@@ -65,14 +65,14 @@ init python:
         renpy.store.sara_unread_messages = 0
         renpy.store.phone_unlocked = True
 
-    def kh_receive(contact, text):
+    def story_receive(contact, text):
         messages = dict(renpy.store.moment_other_dm_messages)
         thread = list(messages.get(contact, []))
         thread.append({"sender": "contact", "text": text, "time": "Өнөөдөр"})
         messages[contact] = thread
         renpy.store.moment_other_dm_messages = messages
 
-    def kh_prepare_bolor():
+    def story_prepare_bolor():
         renpy.store.moment_relationship = 55
         renpy.store.sara_mood = "warm"
         renpy.store.sara_boundary_strikes = 0
@@ -89,10 +89,10 @@ init python:
             {"sender": "sara", "text": "Zaa tiim bailgui dee gants duugee hund aldchihlaa gej ailaashd", "time": "23:13"},
             {"sender": "sara", "text": "Zaa jk shu XD", "time": "23:13"},
         ]
-        kh_receive("khulan", "Маргааш уулзъя. Хариад бичээрэй.")
-        kh_receive("chingun", "Анда, гэртээ харьсан уу?")
+        story_receive("khulan", "Маргааш уулзъя. Хариад бичээрэй.")
+        story_receive("chingun", "Анда, гэртээ харьсан уу?")
 
-    def kh_send_scripted_dm():
+    def story_send_scripted_dm():
         contact = renpy.store.moment_active_contact
         message = renpy.store.phone_chat_input.strip()
         if not message:
@@ -100,7 +100,7 @@ init python:
         messages = dict(renpy.store.moment_other_dm_messages)
         thread = list(messages.get(contact, []))
         thread.append({"sender": "player", "text": message, "time": phone_current_time()})
-        if contact not in renpy.store.kh_dm_replied:
+        if contact not in renpy.store.story_dm_replied:
             responses = {
                 "khulan": "Бичсэнийг чинь харлаа. Маргааш уулзъя.",
                 "anu": "Хариулсанд баярлалаа. Сайхан амраарай.",
@@ -108,31 +108,31 @@ init python:
                 "saruul": "Мессежийг чинь харлаа. Одоо завгүй байна аа.",
             }
             thread.append({"sender": "contact", "text": responses.get(contact, "Seen"), "time": phone_current_time()})
-            renpy.store.kh_dm_replied = renpy.store.kh_dm_replied + [contact]
+            renpy.store.story_dm_replied = renpy.store.story_dm_replied + [contact]
         messages[contact] = thread
         renpy.store.moment_other_dm_messages = messages
         renpy.store.phone_chat_input = ""
         renpy.store.phone_chat_scroll_pending = True
         renpy.restart_interaction()
 
-    def kh_toggle_like(contact):
-        liked = list(renpy.store.kh_post_likes)
+    def story_toggle_like(contact):
+        liked = list(renpy.store.story_post_likes)
         if contact in liked:
             liked.remove(contact)
         else:
             liked.append(contact)
-        renpy.store.kh_post_likes = liked
+        renpy.store.story_post_likes = liked
 
-screen kh_scene_header():
+screen story_scene_header():
     zorder 5
     frame:
         xpos 45
         ypos 35
         padding (24, 15)
         background Solid("#101725dc")
-        text kh_location size 24 color "#ffffff"
+        text story_location size 24 color "#ffffff"
 
-screen kh_timed_choice(options, seconds):
+screen story_timed_choice(options, seconds):
     modal True
     default remaining = seconds
     timer 0.1 repeat True action If(remaining > 0.1, SetScreenVariable("remaining", remaining - 0.1), Return(len(options) - 1))
@@ -149,22 +149,22 @@ screen kh_timed_choice(options, seconds):
             for i, option in enumerate(options):
                 textbutton option action Return(i) xfill True
 
-label kh_inspect(room):
-    $ kh_inspection_finished = False
-    while not kh_inspection_finished:
-        call screen kh_inspection(room)
+label story_inspect(room):
+    $ story_inspection_finished = False
+    while not story_inspection_finished:
+        call screen story_inspection(room)
         if _return == "done":
-            $ kh_inspection_finished = True
+            $ story_inspection_finished = True
         else:
-            $ kh_item = KH_INSPECTIONS[room][_return]
-            if kh_item[0] not in kh_inspected:
-                $ kh_inspected = kh_inspected + [kh_item[0]]
-                if kh_item[0] == "piano_award":
-                    $ kh_flags["knows_piano"] = True
-            $ renpy.say(None, kh_item[2])
+            $ story_item = STORY_INSPECTIONS[room][_return]
+            if story_item[0] not in story_inspected:
+                $ story_inspected = story_inspected + [story_item[0]]
+                if story_item[0] == "piano_award":
+                    $ story_flags["knows_piano"] = True
+            $ renpy.say(None, story_item[2])
     return
 
-screen kh_inspection(room):
+screen story_inspection(room):
     modal True
     frame:
         xalign 0.5
@@ -175,13 +175,13 @@ screen kh_inspection(room):
         vbox:
             spacing 20
             text "Орчноо ажиглах" size 38
-            for i, item in enumerate(KH_INSPECTIONS[room]):
-                textbutton (item[1] + (" · Үзсэн" if item[0] in kh_inspected else "")) action Return(i)
+            for i, item in enumerate(STORY_INSPECTIONS[room]):
+                textbutton (item[1] + (" · Үзсэн" if item[0] in story_inspected else "")) action Return(i)
             textbutton "Үргэлжлүүлэх":
                 action Return("done")
-                sensitive all(item[0] in kh_inspected for item in KH_INSPECTIONS[room])
+                sensitive all(item[0] in story_inspected for item in STORY_INSPECTIONS[room])
 
-screen kh_computer():
+screen story_computer():
     modal True
     add Solid("#0b1020")
     text "MOMENT / DESKTOP" xpos 95 ypos 65 size 36 color "#ffffff"
@@ -202,9 +202,9 @@ screen kh_computer():
         if phone_view == "chat":
             use phone_moment_chat
         else:
-            use kh_moment_page
+            use story_moment_page
 
-screen kh_phone_home():
+screen story_phone_home():
     vbox:
         xpos 60
         ypos 220
@@ -214,7 +214,7 @@ screen kh_phone_home():
         textbutton "Music Player" action [Function(phone_music_open, "library"), SetVariable("phone_view", "music")] text_size 32
         textbutton "Утсаа тавих" action Return() text_size 25
 
-screen kh_moment_page():
+screen story_moment_page():
     add Solid("#0c1019")
     use phone_status_bar(dark=True)
     text "moment" xpos 26 ypos 52 size 42 bold True color "#ffffff"
@@ -223,7 +223,7 @@ screen kh_moment_page():
         xpos 20
         ypos 118
         spacing 14
-        textbutton "Feed" action [SetVariable("phone_view", "social"), SetVariable("kh_phone_tab", "feed")] text_size 20
+        textbutton "Feed" action [SetVariable("phone_view", "social"), SetVariable("story_phone_tab", "feed")] text_size 20
         textbutton "DM" action SetVariable("phone_view", "dm") text_size 20
         textbutton "Профайл" action SetVariable("phone_view", "profile") text_size 20
         textbutton "Music" action [Function(phone_music_open, "library"), SetVariable("phone_view", "music")] text_size 20
@@ -238,7 +238,7 @@ screen kh_moment_page():
             spacing 22
             xsize 576
             if phone_view == "dm":
-                for cid, person in KH_CONTACTS.items():
+                for cid, person in STORY_CONTACTS.items():
                     textbutton (person["name"] + "  ·  " + person["handle"]):
                         action Function(moment_open_contact, cid)
                         text_size 25
@@ -247,34 +247,34 @@ screen kh_moment_page():
                 text "Билгүүн / @bilguun" size 32
                 text "52 дагагч     52 дагасан" size 24 color "#b4a0ea"
                 for cid, title in [("khulan", "Хулан"), ("anu", "Ану"), ("chingun", "Чингүн"), ("badral", "Бадрал"), ("dad", "Аав")]:
-                    text ("%s · %d / 100" % (title, kh_relationships[cid])) size 24
+                    text ("%s · %d / 100" % (title, story_relationships[cid])) size 24
                 text ("Болор · %d / 100" % moment_relationship) size 24
-            elif kh_phone_tab == "story":
-                $ person = KH_CONTACTS[kh_story_contact]
+            elif story_phone_tab == "story":
+                $ person = STORY_CONTACTS[story_story_contact]
                 text (person["name"] + " · Story") size 30 color person["color"]
-                $ post = next(item for item in KH_POSTS if item[0] == kh_story_contact)
+                $ post = next(item for item in STORY_POSTS if item[0] == story_story_contact)
                 text post[1] size 28 xmaximum 550
-                textbutton "Мессеж бичих" action Function(moment_open_contact, kh_story_contact)
-                textbutton "Буцах" action SetVariable("kh_phone_tab", "feed")
+                textbutton "Мессеж бичих" action Function(moment_open_contact, story_story_contact)
+                textbutton "Буцах" action SetVariable("story_phone_tab", "feed")
             else:
-                if kh_notice:
-                    text kh_notice size 23 color "#9ae0db"
+                if story_notice:
+                    text story_notice size 23 color "#9ae0db"
                 hbox:
                     spacing 10
                     for cid in ("khulan", "anu", "saruul", "chingun"):
-                        textbutton KH_CONTACTS[cid]["initial"]:
-                            action [SetVariable("kh_story_contact", cid), SetVariable("kh_phone_tab", "story")]
+                        textbutton STORY_CONTACTS[cid]["initial"]:
+                            action [SetVariable("story_story_contact", cid), SetVariable("story_phone_tab", "story")]
                             text_size 30
                             xysize (120, 70)
-                            background Solid(KH_CONTACTS[cid]["color"])
-                for cid, caption, title in KH_POSTS:
+                            background Solid(STORY_CONTACTS[cid]["color"])
+                for cid, caption, title in STORY_POSTS:
                     frame:
                         xsize 566
                         padding (20, 22)
                         background Solid("#1a2232")
                         vbox:
                             spacing 15
-                            text KH_CONTACTS[cid]["handle"] size 25 color KH_CONTACTS[cid]["color"]
+                            text STORY_CONTACTS[cid]["handle"] size 25 color STORY_CONTACTS[cid]["color"]
                             if renpy.loadable("images/story/post_%s.webp" % cid):
                                 add ("images/story/post_%s.webp" % cid) xysize (526, 260)
                             else:
@@ -282,11 +282,11 @@ screen kh_moment_page():
                             text caption size 24 xmaximum 520
                             hbox:
                                 spacing 20
-                                textbutton ("Таалагдсан" if cid in kh_post_likes else "Like") action Function(kh_toggle_like, cid) text_size 20
+                                textbutton ("Таалагдсан" if cid in story_post_likes else "Like") action Function(story_toggle_like, cid) text_size 20
                                 textbutton "DM" action Function(moment_open_contact, cid) text_size 20
                 text "Reels · Бичлэг хараахан нэмэгдээгүй" size 22 color "#a9b4c5"
 
-screen kh_day_summary():
+screen story_day_summary():
     modal True
     add Solid("#0b1020")
     frame:
@@ -299,7 +299,7 @@ screen kh_day_summary():
             spacing 20
             text "ӨДӨР 1 ДУУСЛАА" size 50 color "#ed95b3"
             text "Өдөр 2 — Үргэлжлэл" size 30
-            text ("Хулан: %d · Ану: %d · Бадрал: %d" % (kh_relationships["khulan"], kh_relationships["anu"], kh_relationships["badral"])) size 26
-            text ("Төгөлдөр хуурын шагналыг анзаарсан" if kh_flags.get("knows_piano") else "Шагналын нууц нээгдээгүй") size 24
+            text ("Хулан: %d · Ану: %d · Бадрал: %d" % (story_relationships["khulan"], story_relationships["anu"], story_relationships["badral"])) size 26
+            text ("Төгөлдөр хуурын шагналыг анзаарсан" if story_flags.get("knows_piano") else "Шагналын нууц нээгдээгүй") size 24
             text "Үргэлжлэлийн зохиол хараахан нэмэгдээгүй." size 24
             textbutton "Дуусгах" action Return()

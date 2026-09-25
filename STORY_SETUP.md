@@ -3,7 +3,23 @@
 New Game now starts the supplied «Охин 1 (1)» story instead of the Eileen phone demo.
 The original DOCX is not modified or committed. The source's main dialogue and
 branch responses are adapted into native Ren'Py labels/menus in
-`game/khulan_day_one.rpy`; state and screens live in `game/khulan_system.rpy`.
+`game/chapter_one.rpy`; state and screens live in `game/story_system.rpy`.
+
+## Updating after the script rename
+
+Keep only one copy of the chapter inside `game`. Ren'Py also loads orphaned
+compiled scripts, so removing or renaming a source file alone may not remove
+the duplicate at runtime.
+
+Before pulling, back up any locally created `game/chapter_one.rpy` outside the
+entire `game` directory. The repository now supplies that filename; keep local
+edits in the backup for comparison instead of overwriting them.
+After pulling, move any remaining `khulan_day_one.rpy`, `khulan_day_one.rpyc`,
+`khulan_system.rpy`, and `khulan_system.rpyc` outside `game`. Do not keep backup
+scripts in a subfolder of `game`, because Ren'Py scans those too.
+Use Launcher → Force Recompile, removing orphaned compiled scripts when offered,
+then start New Game. Existing chapter saves may refer to renamed labels/state
+and are not guaranteed compatible. The earlier unrelated Sara mode is retained.
 
 ## Implemented flow
 
@@ -24,7 +40,7 @@ choice. Chingun's comic reveal is retained. All university characters are adults
 Story mode uses Bilguun's profile (52 followers / 52 following), Khulan, Anu,
 Saruul, Chingun, and Bolor. Only Bolor uses live AI. Other contacts have a single
 scripted reply, then remain read-only on the reply side. Likes do not farm trust.
-The earlier Sara mode remains available to old saves (`kh_story_active=False`).
+The earlier Sara mode remains available to old saves (`story_active=False`).
 For compatibility, the existing `sara` chat storage and transport keys are reused
 for Bolor only in story mode; UI and server persona use Bolor's name.
 
