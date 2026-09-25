@@ -63,7 +63,12 @@ image by scene ID. Night/dream and morning variants preserve the room layouts.
 See `docs/BACKGROUND_PROMPTS.md` for the generation prompts and edit references.
 Missing background files still fall back to solid colors.
 
-Character art, cover audio, and reels remain optional. Posts fall back to title
+Twelve temporary character assets now support the first visual test. Open
+"Дүрийн тест" from the menu to browse them or turn story sprites off before
+adding finished video scenes. See `docs/TEST_CHARACTERS.md` and
+`docs/CHARACTER_PROMPTS.md` for usage and the prompt set.
+
+Cover audio and reels remain optional. Posts fall back to title
 cards, and unavailable audio is labeled.
 Existing music library tracks remain playable. The YouTube reference was not
 downloaded or redistributed.

@@ -12,6 +12,7 @@ label chapter_one:
 
     $ story_location = "Гэр"
     scene expression story_background("family_future") with dissolve
+    $ story_set_test_cast("family_future")
     show screen story_scene_header
 
     "нэгэн гэрт аз жаргалтай гэр бүл харагдана. гэрээр нь дүүрэн тоглоом хөглөрч баярын зоог дууссан шинжтэй зурагтынхаа урд суух хөгшин хүнтэй 20 гаруй насны хүү нь буу халан сууна."
@@ -32,6 +33,7 @@ label chapter_one:
 
     $ story_location = "Өдөр 1 · Сургуулийн гуанз"
     scene expression story_background("cafeteria") with dissolve
+    $ story_set_test_cast("cafeteria")
     show screen story_scene_header
 
     "Билгүүн сууж байхад нь түүний найз Чингүн ирнэ."
@@ -92,6 +94,7 @@ label chapter_one:
 
     $ story_location = "Сургуулийн коридор · Өдөр"
     scene expression story_background("corridor") with dissolve
+    $ story_set_test_cast("corridor")
     show screen story_scene_header
 
     "Анугын дуу дуусмагц Билгүүн цонхоор харахаар цонхны тавцан дээр сууна. Энэ үед сургуулийн гадаа лаг машин ирж зогсох ба том биетэй жолооч арын хаалгийг нээн дотроос нь сургуулийн формтой бөгөөд үнэтэй чамин зүйлсээр өөрийгөө гоёсон үеийн охин бууж ирнэ.Энэ үед Билгүүний хажууд Чингүн ирнэ."
@@ -116,6 +119,7 @@ label chapter_one:
 
     $ story_location = "Сэтгэл судлалын хичээл"
     scene expression story_background("classroom") with dissolve
+    $ story_set_test_cast("classroom")
     show screen story_scene_header
 
     "Багш орж ирэв. Билгүүн ангийнхаа хүүхдүүдийг сониучирхан ажиглана."
@@ -169,6 +173,7 @@ label chapter_one:
 
     $ story_location = "Сургуулийн гадаа"
     scene expression story_background("school_gate") with dissolve
+    $ story_set_test_cast("school_gate")
     show screen story_scene_header
 
     "Билгүүн Чингүүн 2 сургуулийн олон хүүхдүүдийн хамт сургуулийн хаалгаар гадаа гарч ирнэ. Билгүүн Чингүүн хоёрын голоор Хулан мөрлөн ярж гүйн явлаа."
@@ -187,6 +192,7 @@ label chapter_one:
 
     $ story_location = "Саравч · Үдээс хойш"
     scene expression story_background("gazebo") with dissolve
+    $ story_set_test_cast("gazebo")
     show screen story_scene_header
 
     menu:
@@ -259,6 +265,7 @@ label chapter_one:
     "Энэ үед Чингүн нилээн амьсгаатсан гүйж ирэх ба"
     chingun "За сайн байцгаана уу? Намайг ёстой уучлаарай охион."
     "Булан тойроод хэсэг залуучууд гараад ирэв."
+    $ story_set_test_actors(("bilguun", "khulan", "chingun", "older_students"))
     chingun "Хоёр оо. Зугтаарай."
     bilguun "Айн. Юу болоод байна."
     chingun "Зугтаа анда дараа тайлбарлья."
@@ -281,6 +288,7 @@ label chapter_one:
 
     $ story_location = "Гудамж · Орой"
     scene expression story_background("street_escape") with dissolve
+    $ story_set_test_cast("street_escape")
     show screen story_scene_header
 
     
@@ -320,6 +328,7 @@ label chapter_one:
 
     $ story_location = "Хулангийн гэрийн гадаа"
     scene expression story_background("khulan_gate") with dissolve
+    $ story_set_test_cast("khulan_gate")
     show screen story_scene_header
 
     "Билгүүн Хуланг хүргэж өгөхөөр явна. Замдаа хөгжилтэй алхасаар гэрийнх нь гадаа ирэв."
@@ -343,6 +352,7 @@ label chapter_one:
     if story_flags.get("boundary_crossed"):
         bilguun "Уучлаарай. Яарчихлаа."
     "Энэ үед Хулангийн гэрийн хаалга онгойж ээж нь гарч ирэх ба"
+    $ story_set_test_actors(("bilguun", "khulan", "khulan_mother"))
     khulan_mother "Хүүе, миний охин яасан оройтож байх юм."
     khulan_mother "Аан найзтайгаа явж байгаа юм уу. Хулаан миний охин найзтайгаа ороод ир хоол ид."
     khulan "Яах юм бэ ээж. Билгүүнээ одоо харих гэж байна."
@@ -374,6 +384,7 @@ label chapter_one:
     
     $ story_location = "Хулангийн өрөө"
     scene expression story_background("khulan_room") with dissolve
+    $ story_set_test_cast("khulan_room")
     show screen story_scene_header
 
     "Хулан цонхоор харлаа. Залуус харагдсангүй. Түүнийг хувцасны өрөөндөө ороход Билгүүн ханын зураг, шагналуудыг ажиглав."
@@ -407,6 +418,7 @@ label chapter_one:
 
     $ story_location = "Хулангийн гэр · Оройн хоол"
     scene expression story_background("dinner") with dissolve
+    $ story_set_test_cast("dinner")
     show screen story_scene_header
 
     "Аав ширээний толгойд суусан байх ба түүний баруун гар талд ээж, зүүн гар талд ах, ахын хажууд Хулан сууж аавын өөдөөс харан ганцаараа Билгүүн суусан байв. Хулангийн ээжийн зассан ширээ нь өнөөдөр зочин ирэхийг мэдсэн юм шиг тансаг ширээ байв."
@@ -446,6 +458,7 @@ label chapter_one:
 
     $ story_location = "Хулангийн гэр · Шөнө"
     scene expression story_background("departure") with dissolve
+    $ story_set_test_cast("departure")
     show screen story_scene_header
 
     "Хэсэг хугацаа өнгөрч Билгүүн явахаар гутлаа өмсөх ба Хулан Билгүүнийг гаргаж өгөн зогсож байв. Хулан \"Маргааш уулзъя, хариад бичээрэй\" гэж хэлэн хөөрхөн инээх ба Хулангийн араас машины түлхүүрээ эргүүлэн Хулангийн ах гарч ирнэ"
@@ -474,6 +487,7 @@ label chapter_one:
 
     $ story_location = "Бадралын машин"
     scene expression story_background("police_car") with dissolve
+    $ story_set_test_cast("police_car")
     show screen story_scene_header
 
     badral "Ахыг нь Бадрал гэдэг юм. Ах нь хар тамхитай тэмцэх хэлтэст ажилладаг. Ажил их байдаг болохоор ганц дүүдээ анхаарал сайн хандуулж чадахгүй юм. Ингэхэд та хоёр хэнээс тэгэж их айгаад гэрлүү гүйгээд орчив?"
@@ -519,6 +533,7 @@ label chapter_one:
 
     $ story_location = "Билгүүний гэр · Шөнө"
     scene expression story_background("bilguun_home") with dissolve
+    $ story_set_test_cast("bilguun_home")
     show screen story_scene_header
 
     "Билгүүн гэрлүүгээ зөөлхөн орж ирэв."
@@ -553,6 +568,7 @@ label chapter_one:
 
     $ story_location = "Билгүүний өрөө · Шөнө"
     scene expression story_background("bilguun_room") with dissolve
+    $ story_set_test_cast("bilguun_room")
     show screen story_scene_header
 
     "Билгүүн компьютерынхоо ард суулаа. Болор Болор — ганц бие, Америкт амьдардаг, Businesswoman. Тэр Билгүүний хамгийн сайн ойлголцдог цахим найз."
@@ -582,6 +598,7 @@ label chapter_one:
 
     $ story_location = "Зүүд"
     scene expression story_background("dream") with dissolve
+    $ story_set_test_cast("dream")
     show screen story_scene_header
 
     "Хулангийн өрөөнд тэр хоёрын тэврэлдсэн зураг байв. Цаанаас танил хоолой сонсогдоно."
@@ -595,10 +612,12 @@ label chapter_one:
         "Хаалгыг тогших":
             bilguun "Орж болох уу?"
     "Хаалга гэнэт нээгдэв. Хулан биш, инээмсэглэсэн Чингүн зогсож байлаа."
+    $ story_set_test_actors(("chingun",))
     chingun "Хайраа!"
 
     $ story_location = "Өдөр 2 · Өглөө"
     scene expression story_background("day_two") with dissolve
+    $ story_set_test_cast("day_two")
     show screen story_scene_header
 
     "Билгүүн цочин сэрэв. Утсанд Анугийн шинэ cover бичлэг иржээ."
