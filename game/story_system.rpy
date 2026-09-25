@@ -54,6 +54,11 @@ init python:
 
     def start_chapter_one():
         renpy.store.story_active = True
+        renpy.store.story_device_drafts = {}
+        renpy.store.story_desktop_app = "moment"
+        renpy.store.story_desktop_page = "messages"
+        renpy.store.story_desktop_minimized = False
+        renpy.store.story_desktop_maximized = False
         renpy.store.moment_profile_name = "Билгүүн"
         renpy.store.moment_profile_handle = "bilguun"
         renpy.store.moment_profile_bio = "Оюутан · Эхний өдөр"
@@ -71,6 +76,11 @@ init python:
         thread.append({"sender": "contact", "text": text, "time": "Өнөөдөр"})
         messages[contact] = thread
         renpy.store.moment_other_dm_messages = messages
+
+        renpy.store.story_latest_contact = contact
+        unread = dict(renpy.store.moment_contact_unread)
+        unread[contact] = unread.get(contact, 0) + 1
+        renpy.store.moment_contact_unread = unread
 
     def story_prepare_bolor():
         renpy.store.moment_relationship = 55
@@ -183,108 +193,13 @@ screen story_inspection(room):
 
 screen story_computer():
     modal True
-    add Solid("#0b1020")
-    text "MOMENT / DESKTOP" xpos 95 ypos 65 size 36 color "#ffffff"
-    text "Болор Болор" xpos 95 ypos 150 size 46 color "#9ae0db"
-    text "Америк · Ганц бие · Businesswoman" xpos 95 ypos 220 size 24
-    text "Өглөөний мэнд.\nЭндээс өөрөө чат бичиж болно." xpos 95 ypos 290 size 26
-    text "AI хариулт интернет болон серверийн тохиргоо шаарддаг." xpos 95 ypos 405 xmaximum 680 size 22
-    textbutton "Компьютероос босох":
-        xpos 95
-        ypos 560
-        action Return()
-        sensitive not sara_is_typing
-    fixed:
-        xpos 1050
-        ypos 45
-        xysize (624, 984)
-        clipping True
-        if phone_view == "chat":
-            use phone_moment_chat
-        else:
-            use story_moment_page
+    use story_desktop_shell
 
 screen story_phone_home():
-    vbox:
-        xpos 60
-        ypos 220
-        spacing 30
-        text "Билгүүний утас" size 38 color "#ffffff"
-        textbutton "Moment" action SetVariable("phone_view", "social") text_size 32
-        textbutton "Music Player" action [Function(phone_music_open, "library"), SetVariable("phone_view", "music")] text_size 32
-        textbutton "Утсаа тавих" action Return() text_size 25
+    use story_device_launcher
 
 screen story_moment_page():
-    add Solid("#0c1019")
-    use phone_status_bar(dark=True)
-    text "moment" xpos 26 ypos 52 size 42 bold True color "#ffffff"
-    textbutton "Утсаа тавих" xpos 407 ypos 58 text_size 20 action Return()
-    hbox:
-        xpos 20
-        ypos 118
-        spacing 14
-        textbutton "Feed" action [SetVariable("phone_view", "social"), SetVariable("story_phone_tab", "feed")] text_size 20
-        textbutton "DM" action SetVariable("phone_view", "dm") text_size 20
-        textbutton "Профайл" action SetVariable("phone_view", "profile") text_size 20
-        textbutton "Music" action [Function(phone_music_open, "library"), SetVariable("phone_view", "music")] text_size 20
-    viewport:
-        xpos 24
-        ypos 178
-        xsize 576
-        ysize 770
-        mousewheel True
-        draggable True
-        vbox:
-            spacing 22
-            xsize 576
-            if phone_view == "dm":
-                for cid, person in STORY_CONTACTS.items():
-                    textbutton (person["name"] + "  ·  " + person["handle"]):
-                        action Function(moment_open_contact, cid)
-                        text_size 25
-                text "Болор — AI чат. Бусад дүр — зохиолын мессеж." size 19 color "#a9b4c5"
-            elif phone_view in ("profile", "relationship"):
-                text "Билгүүн / @bilguun" size 32
-                text "52 дагагч     52 дагасан" size 24 color "#b4a0ea"
-                for cid, title in [("khulan", "Хулан"), ("anu", "Ану"), ("chingun", "Чингүн"), ("badral", "Бадрал"), ("dad", "Аав")]:
-                    text ("%s · %d / 100" % (title, story_relationships[cid])) size 24
-                text ("Болор · %d / 100" % moment_relationship) size 24
-            elif story_phone_tab == "story":
-                $ person = STORY_CONTACTS[story_story_contact]
-                text (person["name"] + " · Story") size 30 color person["color"]
-                $ post = next(item for item in STORY_POSTS if item[0] == story_story_contact)
-                text post[1] size 28 xmaximum 550
-                textbutton "Мессеж бичих" action Function(moment_open_contact, story_story_contact)
-                textbutton "Буцах" action SetVariable("story_phone_tab", "feed")
-            else:
-                if story_notice:
-                    text story_notice size 23 color "#9ae0db"
-                hbox:
-                    spacing 10
-                    for cid in ("khulan", "anu", "saruul", "chingun"):
-                        textbutton STORY_CONTACTS[cid]["initial"]:
-                            action [SetVariable("story_story_contact", cid), SetVariable("story_phone_tab", "story")]
-                            text_size 30
-                            xysize (120, 70)
-                            background Solid(STORY_CONTACTS[cid]["color"])
-                for cid, caption, title in STORY_POSTS:
-                    frame:
-                        xsize 566
-                        padding (20, 22)
-                        background Solid("#1a2232")
-                        vbox:
-                            spacing 15
-                            text STORY_CONTACTS[cid]["handle"] size 25 color STORY_CONTACTS[cid]["color"]
-                            if renpy.loadable("images/story/post_%s.webp" % cid):
-                                add ("images/story/post_%s.webp" % cid) xysize (526, 260)
-                            else:
-                                text title size 32
-                            text caption size 24 xmaximum 520
-                            hbox:
-                                spacing 20
-                                textbutton ("Таалагдсан" if cid in story_post_likes else "Like") action Function(story_toggle_like, cid) text_size 20
-                                textbutton "DM" action Function(moment_open_contact, cid) text_size 20
-                text "Reels · Бичлэг хараахан нэмэгдээгүй" size 22 color "#a9b4c5"
+    use story_device_moment
 
 screen story_day_summary():
     modal True

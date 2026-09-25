@@ -202,7 +202,7 @@ screen computer():
         if phone_view == "chat":
             use phone_moment_chat
         else:
-            use kh_moment_page
+            use story_moment_page
 
 screen phone_home():
     vbox:

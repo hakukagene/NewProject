@@ -37,6 +37,11 @@ choice. Chingun's comic reveal is retained. All university characters are adults
 
 ## Phone and chat
 
+The chapter now opens an interactive phone for Anu's cafeteria message and a
+desktop browser for the Bolor conversation. Desktop and phone share chat history,
+drafts, music, notes and photos. See `docs/STORY_DEVICES.md` for navigation and
+implementation details.
+
 Story mode uses Bilguun's profile (52 followers / 52 following), Khulan, Anu,
 Saruul, Chingun, and Bolor. Only Bolor uses live AI. Other contacts have a single
 scripted reply, then remain read-only on the reply side. Likes do not farm trust.

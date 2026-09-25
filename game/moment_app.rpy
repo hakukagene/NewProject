@@ -60,7 +60,7 @@ init python:
     MOMENT_CLOSE_FRIEND_THRESHOLD = 60
 
 
-    def moment_chat_draft_rows(value):
+    def moment_chat_draft_rows(value, columns_limit=18, max_rows=9):
         """Reserve vertical space for a wrapped draft, capped at nine lines."""
         rows = 1
         columns = 0
@@ -70,11 +70,11 @@ init python:
                 columns = 0
                 continue
             width = 2 if unicodedata.east_asian_width(character) in ("W", "F") else 1
-            if columns + width > 18:
+            if columns + width > columns_limit:
                 rows += 1
                 columns = 0
             columns += width
-        return min(9, rows)
+        return min(max_rows, rows)
     MOMENT_FEED_CAROUSEL_WIDTH = 624
     MOMENT_FEED_CAROUSEL_SLIDE_COUNT = 3
     MOMENT_FEED_CAROUSEL_SWIPE_DISTANCE = 80
@@ -372,6 +372,11 @@ init python:
         if contact_id not in (STORY_CONTACTS if story_active else MOMENT_CONTACTS):
             return
 
+        if story_active:
+            drafts = dict(renpy.store.story_device_drafts)
+            drafts[renpy.store.moment_active_contact] = renpy.store.phone_chat_input
+            renpy.store.story_device_drafts = drafts
+            renpy.store.phone_chat_input = drafts.get(contact_id, "")
         renpy.store.moment_active_contact = contact_id
         unread = dict(renpy.store.moment_contact_unread)
         unread[contact_id] = 0
@@ -1973,7 +1978,9 @@ screen phone_moment_chat():
     $ final_icon_crop = (398, 389, 403, 396) if can_send else None
     $ unavailable_message = contact["name"] + (" харилцаагаа зогсоосон байна." if sara_blocked else " түр завсарлага авч байна.")
     $ final_button_action = Function(moment_send_active_dm) if can_send else Notify(unavailable_message if sara_unavailable else "Attachment menu дараагийн шатанд нэмэгдэнэ.")
-    $ composer_height = 92 + (moment_chat_draft_rows("" if sara_unavailable else phone_chat_input) - 1) * 24
+    $ draft_expanded = bool(phone_chat_input) and not sara_unavailable
+    $ draft_width = 418 if draft_expanded else 238
+    $ composer_height = 92 + (moment_chat_draft_rows("" if sara_unavailable else phone_chat_input, 32 if draft_expanded else 18, 5) - 1) * 24
     $ composer_top = 984 - composer_height
     $ composer_icon_y = composer_height - 72
 
@@ -2201,7 +2208,7 @@ screen phone_moment_chat():
 
             use moment_composer_icon(
                 "images/phoneUI/CameraIcon.png",
-                Notify("Camera дараагийн шатанд нэмэгдэнэ."),
+                Function(phone_camera_open),
                 20,
                 accent=True,
                 icon_crop=(317, 357, 346, 266),
@@ -2220,7 +2227,7 @@ screen phone_moment_chat():
                     id "moment_chat_draft_viewport"
                     xpos 84
                     ypos 31
-                    xsize 238
+                    xsize draft_width
                     ysize composer_height - 46
                     mousewheel True
                     draggable True
@@ -2229,8 +2236,8 @@ screen phone_moment_chat():
 
                     input:
                         value PhoneChatDraftInputValue()
-                        length 180
-                        xsize 238
+                        length 600
+                        xsize draft_width
                         multiline True
                         copypaste True
                         language "anywhere"
@@ -2239,25 +2246,26 @@ screen phone_moment_chat():
                         caret Solid(theme["accent_alt"], xsize=2)
                         default_focus True
 
-            use moment_composer_icon(
-                "images/phoneUI/Momenticon/mic.svg",
-                Notify("Voice message дараагийн шатанд нэмэгдэнэ."),
-                330,
-                button_y=composer_icon_y,
-            )
-            use moment_composer_icon(
-                "images/phoneUI/Momenticon/picture.png",
-                Notify("Gallery дараагийн шатанд нэмэгдэнэ."),
-                390,
-                icon_crop=(446, 446, 308, 308),
-                button_y=composer_icon_y,
-            )
-            use moment_composer_icon(
-                "images/phoneUI/Momenticon/sticker.png",
-                Notify("Sticker дараагийн шатанд нэмэгдэнэ."),
-                450,
-                button_y=composer_icon_y,
-            )
+            if not draft_expanded:
+                use moment_composer_icon(
+                    "images/phoneUI/Momenticon/mic.svg",
+                    Notify("Voice message дараагийн шатанд нэмэгдэнэ."),
+                    330,
+                    button_y=composer_icon_y,
+                )
+                use moment_composer_icon(
+                    "images/phoneUI/Momenticon/picture.png",
+                    [SetVariable("phone_gallery_selected", -1), SetVariable("phone_view", "gallery")],
+                    390,
+                    icon_crop=(446, 446, 308, 308),
+                    button_y=composer_icon_y,
+                )
+                use moment_composer_icon(
+                    "images/phoneUI/Momenticon/sticker.png",
+                    Notify("Sticker дараагийн шатанд нэмэгдэнэ."),
+                    450,
+                    button_y=composer_icon_y,
+                )
             use moment_composer_icon(
                 final_icon_path,
                 final_button_action,
