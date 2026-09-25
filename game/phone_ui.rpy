@@ -655,7 +655,7 @@ screen phone_ui():
                     ypos 78
                     xysize (624, 984)
 
-                    if story_active and phone_view not in ("chat", "music"):
+                    if story_active and phone_view in ("social", "dm", "profile", "relationship", "story", "notifications", "moment_settings"):
                         use story_moment_page
                     elif phone_view == "social":
                         use phone_moment_feed

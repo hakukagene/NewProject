@@ -42,7 +42,7 @@ class StoryTests(unittest.TestCase):
             exec(compile(block, "story_system.rpy", "exec"), self.ns)
 
     def test_changed_python_blocks_parse(self):
-        for filename in ("story_system.rpy", "phone_ui.rpy", "moment_app.rpy"):
+        for filename in ("story_system.rpy", "story_devices.rpy", "phone_ui.rpy", "moment_app.rpy"):
             for block in init_blocks(ROOT / "game" / filename):
                 ast.parse(block, filename=filename)
 

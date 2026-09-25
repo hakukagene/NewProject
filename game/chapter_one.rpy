@@ -72,6 +72,10 @@ label chapter_one:
     anu "Хичээлийн эхний өдөрт нь амжилт. Чи хамгийн мундаг нь шүү."
     "Ану өөрийн дуулсан гитартай cover бичлэгээ явуулжээ."
     $ story_receive("anu", "Хичээлийн эхний өдөрт нь амжилт. Чи хамгийн мундаг нь шүү.")
+    $ moment_open_contact("anu")
+    hide screen story_scene_header
+    call screen phone_ui
+    show screen story_scene_header
     menu:
         "Сонсох":
             call listen_anu_cover
@@ -553,6 +557,8 @@ label chapter_one:
 
     "Билгүүн компьютерынхоо ард суулаа. Болор Болор — ганц бие, Америкт амьдардаг, Businesswoman. Тэр Билгүүний хамгийн сайн ойлголцдог цахим найз."
     $ story_prepare_bolor()
+    $ story_desktop_open("moment")
+    $ story_desktop_page = "messages"
     $ moment_active_contact = "sara"
     $ phone_view = "chat"
     hide screen story_scene_header
@@ -565,7 +571,7 @@ label chapter_one:
     $ story_following_saruul = True
     $ story_notice = "Саруул таныг буцааж дагалаа."
     $ phone_unlocked = True
-    $ phone_view = "social"
+    $ phone_view = "home"
 
     "Утсаа шалгав. Moment-д 52 дагагч, дагасан 52 хаяг байна. Өнөөдөр таарсан хүмүүсийн нийтлэл, story харагдана."
     hide screen story_scene_header
