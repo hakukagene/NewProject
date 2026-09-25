@@ -50,15 +50,20 @@ characters keep the existing Sara persona. Existing boundary/relationship rules
 still apply. No secrets, provider, API URL, or billing settings are changed.
 Live replies require the configured Gemini service; offline failures stay visible.
 
-## Optional media
+## Story backgrounds and optional media
 
-No new character art, locations, cover audio, or reels were supplied. This is a
-playable text-and-UI adaptation, not a finished illustrated release. Backgrounds
-fall back to solid colors, posts to title cards, and unavailable audio is labeled.
+All 16 story locations now include generated environment artwork, exported as
+1920×1080 WebP in `game/images/story/`. The existing scene loader selects each
+image by scene ID. Night/dream and morning variants preserve the room layouts.
+See `docs/BACKGROUND_PROMPTS.md` for the generation prompts and edit references.
+Missing background files still fall back to solid colors.
+
+Character art, cover audio, and reels remain optional. Posts fall back to title
+cards, and unavailable audio is labeled.
 Existing music library tracks remain playable. The YouTube reference was not
 downloaded or redistributed.
 
-Add licensed scene artwork as `game/images/story/<scene_id>.webp` (1920×1080):
+Included scene artwork at `game/images/story/<scene_id>.webp` (1920×1080):
 `family_future`, `cafeteria`, `corridor`, `classroom`, `school_gate`, `gazebo`,
 `street_escape`, `khulan_gate`, `khulan_room`, `dinner`, `departure`, `police_car`,
 `bilguun_home`, `bilguun_room`, `dream`, `day_two`.
