@@ -9,5 +9,5 @@ define e = Character("Eileen")
 # The game starts here.
 
 label start:
-    call kh_day_one
+    call chapter_one
     return

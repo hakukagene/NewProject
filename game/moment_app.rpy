@@ -345,8 +345,8 @@ init python:
 
 
     def moment_active_contact_data():
-        if kh_story_active:
-            return KH_CONTACTS.get(renpy.store.moment_active_contact, KH_CONTACTS["sara"])
+        if story_active:
+            return STORY_CONTACTS.get(renpy.store.moment_active_contact, STORY_CONTACTS["sara"])
         return MOMENT_CONTACTS.get(
             renpy.store.moment_active_contact,
             MOMENT_CONTACTS["sara"],
@@ -369,7 +369,7 @@ init python:
 
 
     def moment_open_contact(contact_id):
-        if contact_id not in (KH_CONTACTS if kh_story_active else MOMENT_CONTACTS):
+        if contact_id not in (STORY_CONTACTS if story_active else MOMENT_CONTACTS):
             return
 
         renpy.store.moment_active_contact = contact_id
@@ -496,7 +496,7 @@ init python:
             old_value < MOMENT_CLOSE_FRIEND_THRESHOLD
             and new_value >= MOMENT_CLOSE_FRIEND_THRESHOLD
         )
-        if crossed_close_friend and not kh_story_active:
+        if crossed_close_friend and not story_active:
             moment_add_notification(
                 "Сара таныг Close Friends-д нэмлээ",
                 "Нэмэлт story болон post Moment feed-д нээгдлээ.",
@@ -600,8 +600,8 @@ init python:
             moment_send_dm()
             return
 
-        if kh_story_active:
-            kh_send_scripted_dm()
+        if story_active:
+            story_send_scripted_dm()
             return
 
         message = renpy.store.phone_chat_input.strip()
@@ -2042,7 +2042,7 @@ screen phone_moment_chat():
                 bold True
                 color theme["muted"]
 
-            if not kh_story_active:
+            if not story_active:
                 frame:
                     xalign 1.0
                     xysize (360, 330)
