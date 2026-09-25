@@ -345,6 +345,8 @@ init python:
 
 
     def moment_active_contact_data():
+        if kh_story_active:
+            return KH_CONTACTS.get(renpy.store.moment_active_contact, KH_CONTACTS["sara"])
         return MOMENT_CONTACTS.get(
             renpy.store.moment_active_contact,
             MOMENT_CONTACTS["sara"],
@@ -367,7 +369,7 @@ init python:
 
 
     def moment_open_contact(contact_id):
-        if contact_id not in MOMENT_CONTACTS:
+        if contact_id not in (KH_CONTACTS if kh_story_active else MOMENT_CONTACTS):
             return
 
         renpy.store.moment_active_contact = contact_id
@@ -494,7 +496,7 @@ init python:
             old_value < MOMENT_CLOSE_FRIEND_THRESHOLD
             and new_value >= MOMENT_CLOSE_FRIEND_THRESHOLD
         )
-        if crossed_close_friend:
+        if crossed_close_friend and not kh_story_active:
             moment_add_notification(
                 "Сара таныг Close Friends-д нэмлээ",
                 "Нэмэлт story болон post Moment feed-д нээгдлээ.",
@@ -596,6 +598,10 @@ init python:
     def moment_send_active_dm():
         if renpy.store.moment_active_contact == "sara":
             moment_send_dm()
+            return
+
+        if kh_story_active:
+            kh_send_scripted_dm()
             return
 
         message = renpy.store.phone_chat_input.strip()
@@ -1965,7 +1971,7 @@ screen phone_moment_chat():
     $ can_send = bool(phone_chat_input.strip()) and not active_typing and not sara_unavailable
     $ final_icon_path = "images/phoneUI/Momenticon/send.png" if can_send else "images/phoneUI/Momenticon/add.png"
     $ final_icon_crop = (398, 389, 403, 396) if can_send else None
-    $ unavailable_message = "Сара харилцаагаа зогсоосон байна." if sara_blocked else "Сара түр завсарлага авч байна."
+    $ unavailable_message = contact["name"] + (" харилцаагаа зогсоосон байна." if sara_blocked else " түр завсарлага авч байна.")
     $ final_button_action = Function(moment_send_active_dm) if can_send else Notify(unavailable_message if sara_unavailable else "Attachment menu дараагийн шатанд нэмэгдэнэ.")
     $ composer_height = 92 + (moment_chat_draft_rows("" if sara_unavailable else phone_chat_input) - 1) * 24
     $ composer_top = 984 - composer_height
@@ -2036,40 +2042,41 @@ screen phone_moment_chat():
                 bold True
                 color theme["muted"]
 
-            frame:
-                xalign 1.0
-                xysize (360, 330)
-                padding (0, 0)
-                background Solid(theme["surface_alt"])
-
-                fixed:
+            if not kh_story_active:
+                frame:
+                    xalign 1.0
                     xysize (360, 330)
-                    clipping True
+                    padding (0, 0)
+                    background Solid(theme["surface_alt"])
 
-                    add "pWallpaper" xysize (360, 540) ypos -80
-                    add Solid("#00000055")
-                    text "SHARED MOMENT":
-                        xpos 18
-                        ypos 17
-                        size 15
-                        bold True
-                        color "#ffffff"
-                    text "▶":
-                        xalign 0.5
-                        yalign 0.5
-                        size 54
-                        color "#ffffff"
-                    text contact["handle"]:
-                        xpos 18
-                        ypos 286
-                        size 18
-                        bold True
-                        color "#ffffff"
+                    fixed:
+                        xysize (360, 330)
+                        clipping True
 
-            text "15:15":
-                xalign 0.5
-                size 14
-                color theme["muted"]
+                        add "pWallpaper" xysize (360, 540) ypos -80
+                        add Solid("#00000055")
+                        text "SHARED MOMENT":
+                            xpos 18
+                            ypos 17
+                            size 15
+                            bold True
+                            color "#ffffff"
+                        text "▶":
+                            xalign 0.5
+                            yalign 0.5
+                            size 54
+                            color "#ffffff"
+                        text contact["handle"]:
+                            xpos 18
+                            ypos 286
+                            size 18
+                            bold True
+                            color "#ffffff"
+
+                text "15:15":
+                    xalign 0.5
+                    size 14
+                    color theme["muted"]
 
             for msg in active_messages:
                 if msg["sender"] == "player":

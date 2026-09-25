@@ -186,10 +186,10 @@ init python:
         if not message or renpy.store.sara_is_typing:
             return
         if renpy.store.sara_blocked:
-            renpy.notify("Сара харилцаагаа зогсоосон байна.")
+            renpy.notify(("Болор" if kh_story_active else "Сара") + " харилцаагаа зогсоосон байна.")
             return
         if time.time() < renpy.store.sara_cooldown_until:
-            renpy.notify("Сара түр завсарлага авч байна.")
+            renpy.notify(("Болор" if kh_story_active else "Сара") + " түр завсарлага авч байна.")
             return
 
         renpy.store.sara_messages.append({
@@ -212,6 +212,7 @@ init python:
                 history.append({"sender": sender, "text": text})
 
         payload = {
+            "character": "bolor" if kh_story_active else "sara",
             "message": message,
             "history": history,
             "relationship": getattr(renpy.store, "moment_relationship", 0),
@@ -253,16 +254,17 @@ init python:
                 or type(blocked) is not bool or blocked != (strikes >= 4)):
             return
         if delta:
-            moment_adjust_relationship(delta, signals[signal])
+            reason = signals[signal].replace("Сара", "Болор") if kh_story_active else signals[signal]
+            moment_adjust_relationship(delta, reason)
         renpy.store.sara_mood = mood
         renpy.store.sara_boundary_strikes = strikes
         renpy.store.sara_blocked = blocked
         renpy.store.sara_cooldown_until = time.time() + pause if pause else 0.0
         if blocked:
             renpy.store.phone_chat_input = ""
-            renpy.notify("Сара харилцаагаа зогсоолоо.")
+            renpy.notify(("Болор" if kh_story_active else "Сара") + " харилцаагаа зогсоолоо.")
         elif pause:
-            renpy.notify("Сара түр завсарлага авлаа.")
+            renpy.notify(("Болор" if kh_story_active else "Сара") + " түр завсарлага авлаа.")
 
 
     def phone_complete_ai_reply(request_id, reply=None, error="", state=None):
@@ -634,7 +636,10 @@ screen phone_ui():
                     ypos 120
                     xysize (624, 984)
 
-                    use phone_main
+                    if kh_story_active:
+                        use kh_phone_home
+                    else:
+                        use phone_main
 
                 fixed at phone_fullscreen_fit:
                     xpos 152
@@ -650,7 +655,9 @@ screen phone_ui():
                     ypos 78
                     xysize (624, 984)
 
-                    if phone_view == "social":
+                    if kh_story_active and phone_view not in ("chat", "music"):
+                        use kh_moment_page
+                    elif phone_view == "social":
                         use phone_moment_feed
                     elif phone_view == "dm":
                         use phone_moment_dm
