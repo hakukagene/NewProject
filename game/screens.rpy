@@ -357,7 +357,7 @@ screen main_menu():
     ## This ensures that any other menu screen is replaced.
     tag menu
 
-    use moment_desk_menu
+    use gold_main_menu
 
 
 style main_menu_frame is empty
@@ -399,74 +399,23 @@ style main_menu_version:
 ## transcluded (placed) inside it.
 
 screen game_menu(title, scroll=None, yinitial=0.0, spacing=0):
-
-    style_prefix "game_menu"
-
-    if main_menu:
-        add gui.main_menu_background
-    else:
-        add gui.game_menu_background
-
-    frame:
-        style "game_menu_outer_frame"
-
-        hbox:
-
-            ## Reserve space for the navigation section.
-            frame:
-                style "game_menu_navigation_frame"
-
-            frame:
-                style "game_menu_content_frame"
-
-                if scroll == "viewport":
-
-                    viewport:
-                        yinitial yinitial
-                        scrollbars "vertical"
-                        mousewheel True
-                        draggable True
-                        pagekeys True
-
-                        side_yfill True
-
-                        vbox:
-                            spacing spacing
-
-                            transclude
-
-                elif scroll == "vpgrid":
-
-                    vpgrid:
-                        cols 1
-                        yinitial yinitial
-
-                        scrollbars "vertical"
-                        mousewheel True
-                        draggable True
-                        pagekeys True
-
-                        side_yfill True
-
+    use gold_shell(title):
+        frame:
+            style "gold_content"
+            if scroll in ("viewport", "vpgrid"):
+                viewport:
+                    style_prefix "gold"
+                    yinitial yinitial
+                    scrollbars "vertical"
+                    mousewheel True
+                    draggable True
+                    pagekeys True
+                    side_yfill True
+                    vbox:
                         spacing spacing
-
                         transclude
-
-                else:
-
-                    transclude
-
-    use navigation
-
-    textbutton _("Return"):
-        style "return_button"
-
-        action Return()
-
-    label title
-
-    if main_menu:
-        key "game_menu" action ShowMenu("main_menu")
+            else:
+                transclude
 
 
 style game_menu_outer_frame is empty
@@ -583,94 +532,48 @@ screen load():
 
 
 screen file_slots(title):
-
     default page_name_value = FilePageNameInputValue(pattern=_("Page {}"), auto=_("Automatic saves"), quick=_("Quick saves"))
-
     use game_menu(title):
-
         fixed:
-
-            ## This ensures the input will get the enter event before any of the
-            ## buttons do.
             order_reverse True
-
-            ## The page name, which can be edited by clicking on a button.
             button:
                 style "page_label"
-
                 key_events True
-                xalign 0.5
+                xalign .5
                 action page_name_value.Toggle()
-
                 input:
                     style "page_label_text"
                     value page_name_value
-
-            ## The grid of file slots.
-            grid gui.file_slot_cols gui.file_slot_rows:
-                style_prefix "slot"
-
-                xalign 0.5
-                yalign 0.5
-
-                spacing gui.slot_spacing
-
-                for i in range(gui.file_slot_cols * gui.file_slot_rows):
-
+            grid 3 2:
+                xpos 82 ypos 44 spacing 18
+                for i in range(6):
                     $ slot = i + 1
-
                     button:
+                        style "gold_save_slot"
                         action FileAction(slot)
-
-                        has vbox
-
-                        add FileScreenshot(slot) xalign 0.5
-
-                        text FileTime(slot, format=_("{#file_time}%A, %B %d %Y, %H:%M"), empty=_("empty slot")):
-                            style "slot_time_text"
-
-                        text FileSaveName(slot):
-                            style "slot_name_text"
-
+                        vbox:
+                            spacing 3
+                            add FileScreenshot(slot) xysize (288, 162) xalign .5
+                            text FileTime(slot, format="%d %b %Y · %H:%M", empty=_("Empty slot")) style "gold_slot_text"
+                            text FileSaveName(slot) style "gold_slot_text"
                         key "save_delete" action FileDelete(slot)
-
-            ## Buttons to access other pages.
-            vbox:
-                style_prefix "page"
-
-                xalign 0.5
-                yalign 1.0
-
-                hbox:
-                    xalign 0.5
-
-                    spacing gui.page_spacing
-
-                    textbutton _("<") action FilePagePrevious()
-                    key "save_page_prev" action FilePagePrevious()
-
-                    if config.has_autosave:
-                        textbutton _("{#auto_page}A") action FilePage("auto")
-
-                    if config.has_quicksave:
-                        textbutton _("{#quick_page}Q") action FilePage("quick")
-
-                    ## range(1, 10) gives the numbers from 1 to 9.
-                    for page in range(1, 10):
-                        textbutton "[page]" action FilePage(page)
-
-                    textbutton _(">") action FilePageNext()
-                    key "save_page_next" action FilePageNext()
-
-                if config.has_sync:
-                    if CurrentScreenName() == "save":
-                        textbutton _("Upload Sync"):
-                            action UploadSync()
-                            xalign 0.5
-                    else:
-                        textbutton _("Download Sync"):
-                            action DownloadSync()
-                            xalign 0.5
+            hbox:
+                xpos 300 ypos 523 spacing 12
+                textbutton "‹" style "gold_page" action FilePagePrevious()
+                key "save_page_prev" action FilePagePrevious()
+                if config.has_autosave:
+                    textbutton "A" style "gold_page" action FilePage("auto")
+                if config.has_quicksave:
+                    textbutton "Q" style "gold_page" action FilePage("quick")
+                for page in range(1, 10):
+                    textbutton "[page]" style "gold_page" action FilePage(page)
+                textbutton "›" style "gold_page" action FilePageNext()
+                key "save_page_next" action FilePageNext()
+            if config.has_sync:
+                textbutton ("Upload Sync" if CurrentScreenName() == "save" else "Download Sync"):
+                    style "gold_page"
+                    xpos 1410 ypos 523
+                    action (UploadSync() if CurrentScreenName() == "save" else DownloadSync())
 
 
 style page_label is gui_label
@@ -714,84 +617,8 @@ style slot_button_text:
 ## https://www.renpy.org/doc/html/screen_special.html#preferences
 
 screen preferences():
-
     tag menu
-
-    use game_menu(_("Preferences"), scroll="viewport"):
-
-        vbox:
-
-            hbox:
-                box_wrap True
-
-                if renpy.variant("pc") or renpy.variant("web"):
-
-                    vbox:
-                        style_prefix "radio"
-                        label _("Display")
-                        textbutton _("Window") action Preference("display", "window")
-                        textbutton _("Fullscreen") action Preference("display", "fullscreen")
-
-                vbox:
-                    style_prefix "check"
-                    label _("Skip")
-                    textbutton _("Unseen Text") action Preference("skip", "toggle")
-                    textbutton _("After Choices") action Preference("after choices", "toggle")
-                    textbutton _("Transitions") action InvertSelected(Preference("transitions", "toggle"))
-
-                ## Additional vboxes of type "radio_pref" or "check_pref" can be
-                ## added here, to add additional creator-defined preferences.
-
-            null height (4 * gui.pref_spacing)
-
-            hbox:
-                style_prefix "slider"
-                box_wrap True
-
-                vbox:
-
-                    label _("Text Speed")
-
-                    bar value Preference("text speed")
-
-                    label _("Auto-Forward Time")
-
-                    bar value Preference("auto-forward time")
-
-                vbox:
-
-                    if config.has_music:
-                        label _("Music Volume")
-
-                        hbox:
-                            bar value Preference("music volume")
-
-                    if config.has_sound:
-
-                        label _("Sound Volume")
-
-                        hbox:
-                            bar value Preference("sound volume")
-
-                            if config.sample_sound:
-                                textbutton _("Test") action Play("sound", config.sample_sound)
-
-
-                    if config.has_voice:
-                        label _("Voice Volume")
-
-                        hbox:
-                            bar value Preference("voice volume")
-
-                            if config.sample_voice:
-                                textbutton _("Test") action Play("voice", config.sample_voice)
-
-                    if config.has_music or config.has_sound or config.has_voice:
-                        null height gui.pref_spacing
-
-                        textbutton _("Mute All"):
-                            action Preference("all mute", "toggle")
-                            style "mute_all_button"
+    use gold_settings
 
 
 style pref_label is gui_label
