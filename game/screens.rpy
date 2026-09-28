@@ -357,7 +357,7 @@ screen main_menu():
     ## This ensures that any other menu screen is replaced.
     tag menu
 
-    use gold_main_menu
+    use moment_desk_menu
 
 
 style main_menu_frame is empty
