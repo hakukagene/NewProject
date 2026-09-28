@@ -1,8 +1,8 @@
 # Gold Tabs menu system
 
-Applies approved concept 04 to the main menu, Settings, Save/Load, History, Gallery, About, Help, confirmation prompts, choice buttons, quick controls and transient notices. In-story phone/desktop application layouts are not game menus and remain independent.
+Applies approved concept 04 to Settings, Save/Load, History, Gallery, About, Help, confirmation prompts, choice buttons, quick controls and transient notices. The main menu alone uses the approved cinematic desk artwork and left-aligned vertical menu from reference image 2 (`moment_desk_menu`). In-story phone/desktop application layouts are not game menus and remain independent.
 
-`game/gold_menus.rpy` owns shared top tabs, gold selection diamond, serif headings, warm translucent cards, footer controls, switches, radio buttons, sliders and menu scrollbars. `screens.rpy` keeps the existing Ren'Py save/load/history/help actions inside the new shell. Gallery retains character/background selection and the persistent test-art toggle. Main menu has three matching New Story / Continue / Explore cards. Continue remains disabled without a save; Save/History tabs are disabled in the main-menu context.
+`game/gold_menus.rpy` owns shared top tabs, gold selection diamond, serif headings, warm translucent cards, footer controls, switches, radio buttons, sliders and menu scrollbars. `screens.rpy` keeps the existing Ren'Py save/load/history/help actions inside the new shell. Gallery retains character/background selection and the persistent test-art toggle. `game/moment_main_menu.rpy` supplies Start / Continue / Load / Settings / Gallery / Quit on the main menu. Continue remains disabled without a save; Save/History tabs are disabled in the main-menu context. Returning from a submenu restores the cinematic main menu.
 
 All coordinates are on the existing 1920×1080 game canvas. The same composition scales with the game window. Native Ren'Py controls provide mouse, keyboard and touch interaction; menu text is not baked into the background.
 
