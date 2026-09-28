@@ -242,18 +242,27 @@ screen quick_menu():
 
     if quick_menu:
 
-        hbox:
-            style_prefix "quick"
-            style "quick_menu"
+        use game_menu_icon
 
-            textbutton _("Back") action Rollback()
-            textbutton _("History") action ShowMenu('history')
-            textbutton _("Skip") action Skip() alternate Skip(fast=True, confirm=True)
-            textbutton _("Auto") action Preference("auto-forward", "toggle")
-            textbutton _("Save") action ShowMenu('save')
-            textbutton _("Q.Save") action QuickSave()
-            textbutton _("Q.Load") action QuickLoad()
-            textbutton _("Prefs") action ShowMenu('preferences')
+
+# One shared, touch-sized control for desktop and touch devices.
+screen game_menu_icon():
+    button:
+        xalign 1.0
+        yalign 1.0
+        xoffset -24
+        yoffset -16
+        xysize (72, 64)
+        padding (18, 17)
+        background gold_panel()
+        hover_background gold_panel(True)
+        action ShowMenu("preferences")
+        alt _("Menu")
+        tooltip _("Menu")
+        vbox:
+            spacing 7
+            for line in range(3):
+                add Solid("#f0cc8e") xysize (36, 4)
 
 
 ## This code ensures that the quick_menu screen is displayed in-game, whenever
@@ -1336,14 +1345,7 @@ screen quick_menu():
 
     if quick_menu:
 
-        hbox:
-            style "quick_menu"
-            style_prefix "quick"
-
-            textbutton _("Back") action Rollback()
-            textbutton _("Skip") action Skip() alternate Skip(fast=True, confirm=True)
-            textbutton _("Auto") action Preference("auto-forward", "toggle")
-            textbutton _("Menu") action ShowMenu()
+        use game_menu_icon
 
 
 style window:
