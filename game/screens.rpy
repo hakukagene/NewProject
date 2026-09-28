@@ -540,49 +540,71 @@ screen load():
     use file_slots(_("Load"))
 
 
+init python:
+    def moment_save_page_count(slot_names=None):
+        # Keep existing later pages accessible, including saves from older builds.
+        import re
+        occupied = {}
+        for name in (renpy.list_slots() if slot_names is None else slot_names):
+            match = re.match(r"^([1-9][0-9]*)-([1-6])$", name)
+            if match:
+                page, slot = map(int, match.groups())
+                occupied.setdefault(page, set()).add(slot)
+        last = max(occupied, default=1)
+        return last + (len(occupied.get(last, ())) == 6)
+
 screen file_slots(title):
-    default page_name_value = FilePageNameInputValue(pattern=_("Page {}"), auto=_("Automatic saves"), quick=_("Quick saves"))
+    default selected_page = 1
+    $ page_count = moment_save_page_count()
+    $ current_page = min(selected_page, page_count)
     use game_menu(title):
         fixed:
-            order_reverse True
-            button:
-                style "page_label"
-                key_events True
-                xalign .5
-                action page_name_value.Toggle()
-                input:
-                    style "page_label_text"
-                    value page_name_value
+            text "Page [current_page] / [page_count]" style "page_label_text" xalign .5
             grid 3 2:
                 xpos 82 ypos 44 spacing 18
                 for i in range(6):
                     $ slot = i + 1
-                    button:
-                        style "gold_save_slot"
-                        action FileAction(slot)
-                        vbox:
-                            spacing 3
-                            add FileScreenshot(slot) xysize (288, 162) xalign .5
-                            text FileTime(slot, format="%d %b %Y · %H:%M", empty=_("Empty slot")) style "gold_slot_text"
-                            text FileSaveName(slot) style "gold_slot_text"
-                        key "save_delete" action FileDelete(slot)
+                    fixed:
+                        xysize (500, 225)
+                        button:
+                            style "gold_save_slot"
+                            action FileAction(slot, page=current_page)
+                            vbox:
+                                spacing 3
+                                add FileScreenshot(slot, page=current_page) xysize (288, 162) xalign .5
+                                text FileTime(slot, page=current_page, format="%d %b %Y · %H:%M", empty=_("Empty slot")) style "gold_slot_text"
+                                text FileSaveName(slot, page=current_page) style "gold_slot_text"
+                            key "save_delete" action FileDelete(slot, page=current_page, confirm=True)
+                        if FileLoadable(slot, page=current_page):
+                            textbutton _("Delete"):
+                                style "gold_delete"
+                                xpos 386 ypos 12
+                                action FileDelete(slot, page=current_page, confirm=True)
             hbox:
                 xpos 300 ypos 523 spacing 12
-                textbutton "‹" style "gold_page" action FilePagePrevious()
-                key "save_page_prev" action FilePagePrevious()
-                if config.has_autosave:
-                    textbutton "A" style "gold_page" action FilePage("auto")
-                if config.has_quicksave:
-                    textbutton "Q" style "gold_page" action FilePage("quick")
-                for page in range(1, 10):
-                    textbutton "[page]" style "gold_page" action FilePage(page)
-                textbutton "›" style "gold_page" action FilePageNext()
-                key "save_page_next" action FilePageNext()
+                textbutton "‹" style "gold_page" action SetScreenVariable("selected_page", current_page - 1) sensitive current_page > 1
+                if current_page > 1:
+                    key "save_page_prev" action SetScreenVariable("selected_page", current_page - 1)
+                for page in range(max(1, min(current_page - 4, page_count - 8)), min(page_count + 1, max(1, min(current_page - 4, page_count - 8)) + 9)):
+                    textbutton "[page]" style "gold_page" action SetScreenVariable("selected_page", page) selected page == current_page
+                textbutton "›" style "gold_page" action SetScreenVariable("selected_page", current_page + 1) sensitive current_page < page_count
+                if current_page < page_count:
+                    key "save_page_next" action SetScreenVariable("selected_page", current_page + 1)
             if config.has_sync:
                 textbutton ("Upload Sync" if CurrentScreenName() == "save" else "Download Sync"):
                     style "gold_page"
                     xpos 1410 ypos 523
                     action (UploadSync() if CurrentScreenName() == "save" else DownloadSync())
+
+style gold_delete is button:
+    background gold_panel()
+    hover_background gold_panel(True)
+    padding (12, 10)
+
+style gold_delete_text is gold_text:
+    size 20
+    color "#f0cc8e"
+    hover_color "#ffffff"
 
 
 style page_label is gui_label
