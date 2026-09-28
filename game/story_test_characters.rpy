@@ -78,37 +78,36 @@ screen story_character_gallery():
     modal True
     default selected_actor = "khulan"
     default selected_background = "gazebo"
-    key "game_menu" action Return()
-    add Solid("#0e1623")
-    text "ДҮРИЙН ТЕСТ" xpos 65 ypos 50 size 42 color "#ffffff" bold True
-    text "Бичлэг бэлэн болох хүртэл ашиглах түр дүрүүд" xpos 68 ypos 109 size 22 color "#9dacc3"
-    textbutton "Буцах" style "device_button" xpos 1720 ypos 52 action Return()
-
-    frame:
-        xpos 60 ypos 175 xysize (415, 735) padding (22, 22) background device_panel("#1c293b")
-        viewport:
-            xysize (370, 685) mousewheel True draggable True
-            vbox:
-                spacing 8
-                for actor, name in STORY_TEST_CHARACTERS.items():
-                    textbutton name:
-                        style "device_button" xsize 362
-                        padding (18, 9)
-                        text_size 23 selected selected_actor == actor
-                        action SetScreenVariable("selected_actor", actor)
-
-    fixed:
-        xpos 530 ypos 175 xysize (1320, 735) clipping True
-        add story_background(selected_background) xysize (1320, 735)
-        add story_test_asset(selected_actor) xysize (490, 735) xalign .5
-        frame:
-            xpos 26 ypos 22 padding (20, 12) background device_panel("#101725db")
-            text STORY_TEST_CHARACTERS[selected_actor] size 28 color "#ffffff"
-        hbox:
-            xpos 22 ypos 664 spacing 10
-            for scene_id, caption in [("gazebo", "Саравч"), ("classroom", "Анги"), ("khulan_room", "Өрөө"), ("bilguun_home", "Шөнө")]:
-                textbutton caption style "device_button" background device_panel("#101725db") text_size 19 selected selected_background == scene_id action SetScreenVariable("selected_background", scene_id)
-    textbutton ("Зохиолд түр дүрүүд харуулах: Асаалттай" if persistent.story_test_art else "Зохиолд түр дүрүүд харуулах: Унтраалттай"):
-        style "device_button" xpos 60 ypos 945 text_size 24
-        action Function(story_toggle_test_art)
-    text "Нэг дүрд нэг үндсэн зураг · Төрх, хувцас нь тестийн хувилбар" xpos 70 ypos 1020 size 18 color "#899bb6"
+    use gold_shell("Gallery"):
+        fixed:
+            viewport:
+                style_prefix "gold"
+                xpos 0 ypos 0 xysize (360, 472)
+                scrollbars "vertical"
+                mousewheel True
+                draggable True
+                vbox:
+                    spacing 5
+                    for actor, name in STORY_TEST_CHARACTERS.items():
+                        textbutton name:
+                            style "gold_actor"
+                            selected selected_actor == actor
+                            action SetScreenVariable("selected_actor", actor)
+            fixed:
+                xpos 392 ypos 0 xysize (1276, 472) clipping True
+                add story_background(selected_background) xysize (1276, 472)
+                add story_test_asset(selected_actor) xysize (315, 472) xalign .5
+                frame:
+                    xpos 18 ypos 16 padding (15, 8) background gold_panel()
+                    text STORY_TEST_CHARACTERS[selected_actor] style "gold_text"
+            hbox:
+                xpos 392 ypos 488 spacing 8
+                for scene_id, caption in [("gazebo", "Саравч"), ("classroom", "Анги"), ("khulan_room", "Өрөө"), ("bilguun_home", "Шөнө")]:
+                    textbutton caption:
+                        style "gold_action"
+                        selected selected_background == scene_id
+                        action SetScreenVariable("selected_background", scene_id)
+            textbutton ("Түр дүр: Асаалттай" if persistent.story_test_art else "Түр дүр: Унтраалттай"):
+                style "gold_actor"
+                xpos 0 ypos 492
+                action Function(story_toggle_test_art)
