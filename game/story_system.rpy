@@ -15,6 +15,7 @@ default story_dm_replied = []
 
 init python:
     STORY_CONTACTS = {
+        "sister": {"name": "Эгч", "handle": "sister", "initial": "Э", "color": "#c8b5ff", "status": "Гэр бүл", "preview": "Ярих зүйл байна."},
         "sara": {"name": "Болор", "handle": "bolor.bolor", "initial": "Б", "color": "#55c9bc", "status": "Америк · Businesswoman", "preview": "Өглөөний мэнд."},
         "khulan": {"name": "Хулан", "handle": "khulan.art", "initial": "Х", "color": "#ed95b3", "status": "Зураг зурж байна", "preview": "Хариад бичээрэй."},
         "anu": {"name": "Ану", "handle": "anu.cover", "initial": "А", "color": "#b4a0ea", "status": "Cover дуу", "preview": "Сайхан амраарай."},
@@ -216,5 +217,5 @@ screen story_day_summary():
             text "Өдөр 2 — Үргэлжлэл" size 30
             text ("Хулан: %d · Ану: %d · Бадрал: %d" % (story_relationships["khulan"], story_relationships["anu"], story_relationships["badral"])) size 26
             text ("Төгөлдөр хуурын шагналыг анзаарсан" if story_flags.get("knows_piano") else "Шагналын нууц нээгдээгүй") size 24
-            text "Үргэлжлэлийн зохиол хараахан нэмэгдээгүй." size 24
-            textbutton "Дуусгах" action Return()
+            text "Өдөр 2-ын үйл явдал үргэлжилнэ." size 24
+            textbutton "Үргэлжлүүлэх" action Return()
