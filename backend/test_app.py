@@ -130,7 +130,7 @@ class ChatbotApiTests(unittest.TestCase):
 
         apology = chatbot._sara_result({"relationship": 57, "boundary_strikes": 2},
                                       {"reply": "За, сонслоо. Надад хугацаа хэрэгтэй.", "signal": "apology"})
-        self.assertEqual((apology["relationship_delta"], apology["boundary_strikes"]), (1, 1))
+        self.assertEqual((apology["relationship_delta"], apology["boundary_strikes"]), (0, 2))
         self.assertEqual(apology["mood"], "guarded")
         next_message = chatbot._sara_result({"relationship": 58, "boundary_strikes": 1},
                                            {"reply": "Сонсож байна.", "signal": "neutral"})
@@ -141,6 +141,26 @@ class ChatbotApiTests(unittest.TestCase):
         self.assertTrue(blocked["blocked"])
         self.assertEqual(blocked["boundary_strikes"], 4)
         self.assertNotEqual(blocked["reply"], "Сайн уу!")
+
+    def test_repeated_apologies_do_not_erase_boundary_strikes(self):
+        for strikes in (1, 2, 3):
+            result = chatbot._sara_result({"relationship": 50, "boundary_strikes": strikes},
+                                          {"reply": "OK", "signal": "apology"})
+            self.assertEqual(result["boundary_strikes"], strikes)
+            self.assertEqual(result["relationship_delta"], 0)
+
+    def test_third_strike_repeats_pause_and_warns_before_block(self):
+        result = chatbot._sara_result({"relationship": 50, "boundary_strikes": 2},
+                                      {"reply": "OK", "signal": "rude"})
+        self.assertEqual(result["pause_seconds"], 120)
+        self.assertFalse(result["blocked"])
+        self.assertIn("чатыг хаана", result["reply"])
+
+    def test_strikes_block_even_without_blocked_flag(self):
+        with patch.object(chatbot, "generate_reply") as model:
+            response = self.client.post("/api/chat", json={"message": "hi", "boundary_strikes": 4})
+        self.assertEqual(response.status_code, 403)
+        model.assert_not_called()
 
     def test_model_cannot_set_its_own_score_or_force_block(self):
         result = chatbot._sara_result({"relationship": 99, "boundary_strikes": 0},

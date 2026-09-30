@@ -253,13 +253,16 @@ init python:
                 or type(pause) is not int or not 0 <= pause <= 120
                 or type(blocked) is not bool or blocked != (strikes >= 4)):
             return
+        # A delayed response cannot reopen a relationship already blocked.
+        if renpy.store.sara_blocked:
+            return
         if delta:
             reason = signals[signal].replace("Сара", "Болор") if story_active else signals[signal]
             moment_adjust_relationship(delta, reason)
         renpy.store.sara_mood = mood
         renpy.store.sara_boundary_strikes = strikes
         renpy.store.sara_blocked = blocked
-        renpy.store.sara_cooldown_until = time.time() + pause if pause else 0.0
+        renpy.store.sara_cooldown_until = max(renpy.store.sara_cooldown_until, time.time() + pause) if pause else renpy.store.sara_cooldown_until
         if blocked:
             renpy.store.phone_chat_input = ""
             renpy.notify(("Болор" if story_active else "Сара") + " харилцаагаа зогсоолоо.")

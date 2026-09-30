@@ -32,7 +32,7 @@ SARA_SIGNALS = {
     "rude": (-3, 1, "upset"),
     "pressuring": (-4, 1, "upset"),
     "harassment": (-8, 2, "upset"),
-    "apology": (1, -1, "guarded"),
+    "apology": (0, 0, "guarded"),
 }
 SARA_OUTPUT_SCHEMA = {
     "type": "OBJECT",
@@ -214,12 +214,17 @@ def _sara_result(payload: dict[str, Any], model_output: dict[str, Any]) -> dict[
     old_score = _bounded_int(payload.get("relationship"), 0, 0, 100)
     delta = max(-old_score, min(100 - old_score, delta))
     blocked = strikes >= 4
-    pause_seconds = 120 if strikes >= 2 and old_strikes < 2 else 0
+    pause_seconds = 120 if not blocked and strikes >= 2 and strike_change > 0 else 0
     reply = _text(model_output.get("reply"), MAX_REPLY_CHARS)
     if blocked:
         reply = "Надад ийм харилцаа тухгүй байна. Эндээс цааш чатлахгүй."
     elif pause_seconds:
-        reply = "Одоо энэ яриаг үргэлжлүүлэхэд надад хэцүү байна. Түр завсарлая."
+        reply = ("Дахин ингэж харьцвал би чатыг хаана. Одоо түр завсарлая."
+                 if strikes == 3 else "Одоо энэ яриаг үргэлжлүүлэхэд надад хэцүү байна. Түр завсарлая.")
+    elif strikes == 1 and old_strikes == 0:
+        reply = "Надтай ингэж харьцах нь тухгүй байна. Дахин давтахгүй байхыг хүсэж байна."
+    elif signal == "apology" and strikes:
+        reply = "Уучлалт гуйсныг чинь сонслоо. Гэхдээ итгэл буцаад шууд хэвийн болохгүй. Цаашдын харьцаа чинь чухал."
     if not reply:
         raise RuntimeError("Gemini returned an empty reply")
     return {
@@ -336,7 +341,7 @@ def chat():
     if not message:
         return jsonify({"error": "message_required"}), 400
 
-    if payload.get("blocked") is True:
+    if payload.get("blocked") is True or _bounded_int(payload.get("boundary_strikes"), 0, 0, 4) >= 4:
         return jsonify({"error": "sara_blocked"}), 403
 
     if not os.getenv("GEMINI_API_KEY", "").strip():
