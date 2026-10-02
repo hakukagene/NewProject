@@ -243,7 +243,7 @@ screen story_desktop_feed():
         xpos 42 ypos 120 xsize 940 ysize 598 mousewheel True draggable True
         vbox:
             spacing 24 xsize 900
-            for cid, caption, title in STORY_POSTS:
+            for cid, caption, title in story_current_posts():
                 frame:
                     xsize 900 padding (26, 24) background device_panel("#1b2637")
                     vbox:
@@ -257,6 +257,8 @@ screen story_desktop_feed():
                                 text "Өнөөдөр" size 13 color "#94a6bf"
                         text title size 27 color STORY_CONTACTS[cid]["color"]
                         text caption size 23 color "#e5ebf5" xmaximum 835
+                        if cid == "anu" and story_flags.get("oct02_night_feed"):
+                            use story_farewell_media
                         hbox:
                             spacing 24
                             textbutton ("♥ Таалагдсан" if cid in story_post_likes else "♡ Таалагдлаа") style "device_button" action Function(story_toggle_like, cid)
@@ -447,7 +449,7 @@ screen story_device_moment():
                 text ("Болор · %d / 100" % moment_relationship) size 25 color "#b8c8df"
             elif story_phone_tab == "story":
                 $ person = STORY_CONTACTS[story_story_contact]
-                $ post = next(item for item in STORY_POSTS if item[0] == story_story_contact)
+                $ post = next(item for item in story_current_posts() if item[0] == story_story_contact)
                 frame:
                     xsize 576 padding (28, 38) background device_panel("#263449")
                     vbox:
@@ -474,7 +476,7 @@ screen story_device_moment():
                                     xysize (68, 68) xalign .5
                                     use device_avatar(cid, 68)
                                 text STORY_CONTACTS[cid]["name"] size 17 color "#dbe4f3" xalign .5
-                for cid, caption, title in STORY_POSTS:
+                for cid, caption, title in story_current_posts():
                     frame:
                         xsize 576 padding (24, 24) background device_panel("#1b2638")
                         vbox:
@@ -493,6 +495,8 @@ screen story_device_moment():
                                     xsize 528 padding (24, 36) background device_panel("#2e3c53")
                                     text title size 32 color STORY_CONTACTS[cid]["color"] xmaximum 475
                             text caption size 24 color "#e4ebf6" xmaximum 518
+                            if cid == "anu" and story_flags.get("oct02_night_feed"):
+                                use story_farewell_media
                             hbox:
                                 spacing 16
                                 textbutton ("♥" if cid in story_post_likes else "♡") style "device_button" text_size 30 text_color "#f18dae" action Function(story_toggle_like, cid)
@@ -503,3 +507,11 @@ screen story_device_moment():
             spacing 8
             for page, title in [("social", "⌂ Нүүр"), ("dm", "✉ Чат"), ("profile", "○ Би")]:
                 textbutton title style "device_button" xysize (185, 60) text_size 22 selected phone_view == page action [SetVariable("phone_view", page), SetVariable("story_phone_tab", "feed")]
+
+
+screen story_farewell_media():
+    if renpy.loadable("audio/story/anu_farewell.ogg"):
+        textbutton "▶ Cover сонсох" style "device_button" action Play("music", "audio/story/anu_farewell.ogg")
+        textbutton "■ Зогсоох" style "device_button" action Stop("music", fadeout=.5)
+    else:
+        text "Cover · Бичлэг хараахан нэмэгдээгүй" size 18 color "#a4b4cf"
