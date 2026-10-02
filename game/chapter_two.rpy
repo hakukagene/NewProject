@@ -379,21 +379,11 @@ label chapter_two:
     bilguun_father "Билгүүнээ миний хүү өрөөндөө орж бай. Аав нь эгчтэй нь ярих юм байна."
     "гэж гэнэт хувьс хийсэн аавын хоолойны өнгийг Билгүүн гайхан үгэнд орж өрөөрүүгээ орлоо."
 
-    $ story_location = "Exp. Билгүүний өрөө - Шөнө"
-    scene expression story_background("bilguun_room") with dissolve
-    $ story_set_test_actors(("bilguun",))
-    show screen story_scene_header
-    "Мөн адил PC -нхээ ард суух ба хүнтэй чаталж эхлэнэ."
-    $ story_desktop_open("moment")
-    $ story_desktop_page = "messages"
-    $ moment_active_contact = "sara"
-    $ phone_view = "chat"
-    hide screen story_scene_header
-    call screen story_computer
-    show screen story_scene_header
-    $ story_day = 3
+    call story_october_night
+    call story_october_day_three
+    $ story_day = 4
 
-    $ story_location = "Өдөр 3 · Ангид"
+    $ story_location = "Өдөр 4 · Ангид"
     scene expression story_background("classroom") with dissolve
     $ story_set_test_actors(("bilguun", "chingun", "khulan"))
     show screen story_scene_header
@@ -431,7 +421,7 @@ label chapter_two:
     "хөдөлсөн ангийн ширээ сандалыг цэгцлэнэ. Багш"
     teacher "Билгүүнээ Чингүний араас гарах уу даа? Эмчрүү хүргэж өгөхгүй юу?."
     "Билгүүн Чингүний араас ангиас гарахад ангид үлдэх Хулан санаа зовж харагдана."
-    $ story_location = "Өдөр 3 · Ариун цэврийн өрөө"
+    $ story_location = "Өдөр 4 · Ариун цэврийн өрөө"
     scene expression story_background("school_restroom") with dissolve
     $ story_set_test_actors(("bilguun", "chingun"))
     "Билгүүн Чингүнийг хайж эрэгтэй 00 оров."
