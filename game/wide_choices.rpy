@@ -46,8 +46,9 @@ style moment_wide_answer_text is button_text:
     hover_color "#28190e"
     selected_color "#28190e"
     insensitive_color "#a59a88"
-    xalign 0.0
-    textalign 0.0
+    xalign 0.5
+    yalign 0.5
+    textalign 0.5
     layout "greedy"
     outlines []
 
