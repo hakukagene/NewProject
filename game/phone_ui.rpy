@@ -481,7 +481,7 @@ transform phone_fullscreen_fit:
 
 
 style phone_text is default:
-    font gui.interface_text_font
+    font "DejaVuSans.ttf"
     color "#172033"
     size 24
 
@@ -512,6 +512,7 @@ style phone_button_text is phone_text:
 
 
 screen phone_status_bar(dark=False):
+    style_prefix "device"
     $ status_color = "#ffffff" if dark else "#111827"
 
     fixed:
@@ -539,7 +540,7 @@ screen phone_status_bar(dark=False):
             spacing 8
 
             text "5G" size 15 bold True color status_color
-            text "|||" size 14 bold True color status_color
+            add device_tint_icon("signal", status_color, 22) yalign .5
             frame:
                 xysize (31, 15)
                 padding (2, 2)
@@ -548,6 +549,7 @@ screen phone_status_bar(dark=False):
 
 
 screen phone_ui():
+    style_prefix "device"
     modal True
     zorder 200
 
@@ -563,13 +565,9 @@ screen phone_ui():
         xysize (800, 1199)
         clipping True
 
-        # These two images were added in the LockScreen commit. The border is
-        # intentionally below the wallpaper because its centre is opaque.
-        add "pBorder"
-        add "pWallpaper"
-        # The home UI remains transparent. This full wallpaper-shaped layer
-        # supplies the requested black alpha overlay behind all home content.
-        add "homeScreenBlackOverlay"
+        fixed at phone_fullscreen_fit:
+            xpos 152 ypos 78 xysize (624, 984)
+            use device_wallpaper_layer
 
         if phone_is_locked:
             # The unlocked home page is already below the lock panel, so it
@@ -622,8 +620,10 @@ screen phone_ui():
                             # A second wallpaper travels with the lock layer.
                             # The stationary clipping area and border overlay
                             # keep it inside the physical screen opening.
-                            add "pWallpaper"
-                            add "lockScreenGray"
+                            fixed at phone_fullscreen_fit:
+                                xpos 152 ypos 78 xysize (624, 984)
+                                use device_wallpaper_layer
+                                add Solid("#00000020")
 
                             fixed at phone_fullscreen_fit:
                                 xpos 152
@@ -658,7 +658,9 @@ screen phone_ui():
                     ypos 78
                     xysize (624, 984)
 
-                    if story_active and phone_view in ("social", "dm", "profile", "relationship", "story", "notifications", "moment_settings"):
+                    if phone_view in ("device_settings", "moment_settings"):
+                        use device_phone_settings
+                    elif story_active and phone_view in ("social", "dm", "profile", "relationship", "story", "notifications", "moment_settings"):
                         use story_moment_page
                     elif phone_view == "social":
                         use phone_moment_feed
@@ -706,266 +708,41 @@ screen phone_ui():
 
         # Keep the bezel, rounded corners, and notch stationary above every
         # moving page. Transparent screen pixels remain fully interactive.
-        add "pBorderOverlay"
+        add ("images/devices/frames/%s.svg" % device_theme_key())
 
 
 screen phone_lockscreen():
-    add Null(width=624, height=984)
-    $ flashlight_color = "#fef08a" if phone_flashlight_on else "#ffffff"
-
+    style_prefix "device"
+    $ p = device_palette()
     use phone_status_bar(dark=True)
-
-    vbox:
-        xalign 0.5
-        ypos 96
-        spacing 2
-
-        text "[phone_current_time()]":
-            xalign 0.5
-            size 88
-            bold True
-            color "#ffffff"
-        text "[phone_current_date()]":
-            xalign 0.5
-            size 21
-            color "#e0e7ff"
-
-    # Wide glass notification, proportioned like the phone reference.
-    # Every label is positioned independently so a long message cannot move
-    # the title or timestamp.
+    text phone_current_time() xalign .5 ypos 102 size 96 color "#ffffff" font "DejaVuSans.ttf"
+    text phone_current_date() xalign .5 ypos 226 size 22 color "#ffffff"
     button:
-        xalign 0.5
-        ypos 748
-        xysize (592, 78)
-        padding (0, 0)
-        background None
-        hover_background None
-        action Function(phone_open_lock_notification, "sara")
-
+        xpos 28 ypos 670 xysize (568, 142) padding (22, 19)
+        background device_panel(p["glass"]) hover_background device_panel(p["surface"])
+        action Function(phone_open_lock_notification, device_notice_contact())
         fixed:
-            xysize (592, 78)
-
-            add "pNotificationGlass"
-
-            fixed:
-                xpos 22
-                ypos 16
-                xysize (64, 47)
-
-                add "pMomentNotificationIcon"
-                text "M":
-                    xalign 0.5
-                    yalign 0.5
-                    size 27
-                    bold True
-                    color "#ffffff"
-
-            text "Moment · Сара":
-                xpos 104
-                ypos 12
-                size 18
-                bold True
-                color "#ffffff"
-
-            text "одоо":
-                xpos 562
-                xanchor 1.0
-                ypos 12
-                size 17
-                color "#e2e8f0"
-
-            text "Маргааш дахиад очвол ямар вэ?":
-                xpos 104
-                ypos 38
-                xmaximum 454
-                size 20
-                color "#ffffff"
-
+            add device_icon("moment") xpos 0 ypos 6 xysize (64, 50)
+            text ("Moment · " + device_notice_name()) xpos 82 ypos 0 size 22 bold True color p["text"]
+            text device_notice_preview() xpos 82 ypos 38 xsize 430 size 19 color p["muted"]
     button:
-        xpos 70
-        ypos 850
-        xysize (96, 96)
-        padding (0, 0)
-        background None
-        hover_background None
+        xpos 52 ypos 858 xysize (96, 76) padding (0, 0)
+        background device_panel("#ffffffe0" if phone_flashlight_on else "#20263488")
         action Function(phone_toggle_flashlight)
-        fixed:
-            add "pQuickActionBackground"
-
-        fixed:
-            xpos 35
-            ypos 15
-            xysize (96, 96)
-            add "pLightOff"
+        add device_tint_icon("flashlight", "#252c3d" if phone_flashlight_on else "#ffffff", 48) xalign .5 yalign .5
     button:
-        xpos 474
-        ypos 850
-        xysize (96, 96)
-        padding (0, 0)
-        background None
-        hover_background None
+        xpos 476 ypos 858 xysize (96, 76) padding (0, 0) background device_panel("#20263488")
         action Function(phone_camera_open)
-        fixed:
-            add "pQuickActionBackground"
-        fixed:
-            xpos 25
-            ypos 20
-            xysize (96, 96)
-            add "pCameraIcon"
-
-    fixed:
-        xpos 222
-        ypos 930
-        xysize (180, 36)
-
-        text "━━━━━━━━":
-            xalign 0.5
-            yalign 0.5
-            size 20
-            color "#ffffff"
-
+        add device_tint_icon("camera", "#ffffff", 54) xalign .5 yalign .5
+    text "Дээш шударч нээх" xalign .5 ypos 947 size 18 color "#ffffff"
 
 
 screen phone_main():
-    # Preserve this screen's layout bounds without covering the wallpaper.
-    $ dm_unread = moment_dm_unread_count()
-    add Null(width=624, height=984)
-
-    vbox:
-        xpos 38
-        ypos 92
-        spacing 6
-
-        text "Өдрийн мэнд":
-            style "phone_light_text"
-            size 22
-        text "22°  ·  Улаанбаатар":
-            style "phone_light_text"
-            size 38
-            bold True
-
-    grid 3 2:
-        xpos 37
-        ypos 200
-        xspacing 42
-        yspacing 38
-
-        button:
-            style "phone_button"
-            xysize (150, 150)
-            action SetVariable("phone_view", "social")
-            vbox:
-                xalign 0.5
-                spacing 10
-                fixed:
-                    xalign 0.5
-                    xysize (84, 66)
-                    add "pHomeMomentIcon"
-                    text "M" style "phone_icon_text" xalign 0.5 yalign 0.5
-                    if moment_unread_count():
-                        frame:
-                            xalign 1.0
-                            yalign 0.0
-                            xysize (30, 30)
-                            padding (0, 0)
-                            background Solid("#ff3d71")
-                            text "[moment_unread_count()]" size 14 color "#ffffff" bold True xalign 0.5 yalign 0.5
-                text "Moment" style "phone_light_text" size 18 xalign 0.5
-
-        button:
-            style "phone_button"
-            xysize (150, 150)
-            action SetVariable("phone_view", "dm")
-            vbox:
-                xalign 0.5
-                spacing 10
-                fixed:
-                    xysize (84, 66)
-                    add "pHomeChatIcon"
-                    text "C" style "phone_icon_text" xalign 0.5 yalign 0.5
-                    if dm_unread:
-                        frame:
-                            xalign 1.0
-                            yalign 0.0
-                            xysize (30, 30)
-                            padding (0, 0)
-                            background Solid("#ef4444")
-                            text "[dm_unread]" size 15 color "#ffffff" bold True xalign 0.5 yalign 0.5
-                text "Chat" style "phone_light_text" size 18 xalign 0.5
-
-        button:
-            style "phone_button"
-            xysize (150, 150)
-            action Function(phone_camera_open)
-            vbox:
-                xalign 0.5
-                spacing 10
-                fixed:
-                    xalign 0.5
-                    xysize (84, 66)
-                    add "pHomeCameraIcon"
-                    text "CAM" style "phone_icon_text" size 20 xalign 0.5 yalign 0.5
-                text "Камер" style "phone_light_text" size 18 xalign 0.5
-
-        button:
-            style "phone_button"
-            xysize (150, 150)
-            action [SetVariable("phone_gallery_selected", -1), SetVariable("phone_view", "gallery")]
-            vbox:
-                xalign 0.5
-                spacing 10
-                fixed:
-                    xalign 0.5
-                    xysize (84, 66)
-                    add "pHomeGalleryIcon"
-                    text "PIC" style "phone_icon_text" size 20 xalign 0.5 yalign 0.5
-                text "Зураг" style "phone_light_text" size 18 xalign 0.5
-
-        button:
-            style "phone_button"
-            xysize (150, 150)
-            action [SetVariable("phone_notes_page", "list"), SetVariable("phone_view", "notes")]
-            vbox:
-                xalign 0.5
-                spacing 10
-                fixed:
-                    xalign 0.5
-                    xysize (84, 66)
-                    add "pHomeNotesIcon"
-                    text "N" style "phone_icon_text" xalign 0.5 yalign 0.5
-                text "Тэмдэглэл" style "phone_light_text" size 18 xalign 0.5
-
-        button:
-            style "phone_button"
-            xysize (150, 150)
-            action Notify("Тохиргоо дараагийн шатанд нэмэгдэнэ.")
-            vbox:
-                xalign 0.5
-                spacing 10
-                fixed:
-                    xalign 0.5
-                    xysize (84, 66)
-                    add "pHomeSettingsIcon"
-                    text "SET" style "phone_icon_text" size 18 xalign 0.5 yalign 0.5
-                text "Тохиргоо" style "phone_light_text" size 18 xalign 0.5
-
-    button:
-        style "phone_button"
-        xpos 37
-        ypos 576
-        xysize (150, 150)
-        action SetVariable("phone_view", "music")
-        vbox:
-            xalign 0.5
-            spacing 10
-            fixed:
-                xalign 0.5
-                xysize (84, 66)
-                add "pHomeMusicIcon"
-                text "♫" style "phone_icon_text" xalign 0.5 yalign 0.5
-            text "Music" style "phone_light_text" size 18 xalign 0.5
+    style_prefix "device"
+    use device_phone_home
 
 screen phone_social():
+    style_prefix "device"
     add Solid("#f8fafc")
 
     use phone_status_bar()
@@ -1147,6 +924,7 @@ screen phone_social():
 
 
 screen phone_sara_chat():
+    style_prefix "device"
     add Solid("#f1f5f9")
 
     use phone_status_bar()
