@@ -360,43 +360,14 @@ init python:
 label story_parking_fight:
     $ story_fight_score = 0
     $ story_fight_round = 0
-    "Дэлгэцэнд гарсан үсгийг гар дээр дарах эсвэл доорх тохирох товчийг товшино уу. Нэг үсэг бүрт 2.5 секунд байна."
+    "Дайсны цохилтын чиглэлийг ажиглаад эсрэг тийш бултаарай. A / D, зүүн / баруун сум, доорх товч эсвэл swipe ашиглана."
     while story_fight_round < 6:
-        call screen story_fight_prompt(("w", "a", "s", "d", "a", "w")[story_fight_round], story_fight_round, story_fight_score)
+        call screen story_fight_prompt(STORY_DODGE_ATTACKS[story_fight_round], story_fight_round, story_fight_score)
         if _return:
             $ story_fight_score += 1
+        call screen story_dodge_feedback(_return, STORY_DODGE_ATTACKS[story_fight_round])
         $ story_fight_round += 1
     $ story_flags["parking_fight_score"] = story_fight_score
     $ story_flags["parking_fight_complete"] = True
     "Та [story_fight_score] / 6 хөдөлгөөнийг цагт нь хийлээ."
     return
-
-screen story_fight_prompt(expected, round_index, score):
-    modal True
-    zorder 100
-    default remaining = 2.5
-    timer .1 repeat True action If(remaining > .1, SetScreenVariable("remaining", remaining - .1), Return(False))
-    for letter in ("w", "a", "s", "d"):
-        key letter action Return(letter == expected)
-    frame:
-        xalign .5 yalign .5
-        xsize 840 padding (50, 35)
-        background gold_panel()
-        vbox:
-            spacing 20 xfill True
-            text "ӨӨРИЙГӨӨ ХАМГААЛ" size 30 color "#f4d89a" xalign .5
-            text ("Хөдөлгөөн %d / 6  ·  Зөв %d" % (round_index + 1, score)) size 24 xalign .5
-            text expected.upper() size 100 color "#ffffff" xalign .5
-            bar value remaining range 2.5 xsize 740 ysize 12 left_bar Solid("#dab76c") right_bar Solid("#514534")
-            text "Үсгийг дарах эсвэл тохирох товчийг товшино уу" size 23 xalign .5
-            hbox:
-                spacing 20 xalign .5
-                for letter in ("w", "a", "s", "d"):
-                    textbutton letter.upper():
-                        xysize (140, 80)
-                        text_size 36
-                        text_color "#f5e8ca"
-                        text_hover_color "#ffffff"
-                        background Solid("#51412f")
-                        hover_background Solid("#80623b")
-                        action Return(letter == expected)
