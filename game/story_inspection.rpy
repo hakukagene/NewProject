@@ -7,6 +7,11 @@ init python:
             "class_students": (1160, 488, 730, 365),
             "class_board": (700, 164, 794, 270),
         },
+        "saruul_home": {
+            "saruul_family": (24, 95, 208, 222),
+            "saruul_study": (20, 364, 355, 430),
+            "saruul_room": (910, 444, 910, 370),
+        },
         "khulan_room": {
             "room_drawing": (4, 28, 390, 355),
             "room_awards": (1016, 175, 224, 177),
@@ -47,7 +52,7 @@ screen story_inspection(room):
                             text item[1] size (20 if item[0] == "piano_award" else 23) xsize (280 if item[0] == "piano_award" else None) color "#fff5df"
 
             frame:
-                xpos 52 ypos 88
+                xpos (680 if room == "saruul_home" else 52) ypos 88
                 padding (20, 14)
                 background device_panel("#162232dd")
                 vbox:
@@ -78,6 +83,5 @@ screen story_inspection(room):
                         sensitive visited == len(items)
                         action Return("done")
     else:
-        # A later scene currently has no background artwork. Keep its working
-        # inspection list until matching art and object coordinates are added.
+        # Future scenes without mapped artwork keep a functional list.
         use story_inspection_list(room)

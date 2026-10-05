@@ -18,6 +18,11 @@ init python:
         "bilguun_father": "Билгүүний аав",
         "badral": "Бадрал",
         "older_students": "Ахлах курсын залуус",
+        "story_sister": "Эгч",
+        "story_classmate": "Ангийн охин",
+        "story_sibling": "Дүү",
+        "story_aggressor": "Залуу",
+        "story_students": "Оюутнууд",
     }
     STORY_TEST_CAST = {
         "family_future": ("bilguun", "bilguun_father"),
@@ -50,7 +55,7 @@ init python:
         actors = [actor] if actor in STORY_TEST_CHARACTERS and renpy.loadable(story_test_asset(actor)) else []
         for actor in actors:
             position = .68
-            height = 930
+            height = 620 if actor == "story_sibling" else 930
             # A live condition also updates the underlying game after leaving
             # the gallery's separate menu context, without waiting for a scene.
             visible_art = ConditionSwitch("persistent.story_test_art", story_test_asset(actor), "True", Null(), predict_all=True)
@@ -122,7 +127,7 @@ init 10 python:
             renpy.store.story_test_speaker = actor
             story_refresh_test_cast()
 
-    for character_name in tuple(STORY_TEST_CHARACTERS) + ("_narrator", "story_sister", "story_classmate", "story_sibling", "story_aggressor", "story_students"):
+    for character_name in tuple(STORY_TEST_CHARACTERS) + ("_narrator",):
         character = getattr(renpy.store, character_name, None)
         if character is not None:
             actor = character_name if character_name in STORY_TEST_CHARACTERS else None
