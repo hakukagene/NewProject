@@ -147,18 +147,7 @@ screen story_timed_choice(options, seconds):
     modal True
     default remaining = seconds
     timer 0.1 repeat True action If(remaining > 0.1, SetScreenVariable("remaining", remaining - 0.1), Return(len(options) - 1))
-    frame:
-        xalign 0.5
-        yalign 0.65
-        xsize 900
-        padding (35, 30)
-        background Solid("#101725f5")
-        vbox:
-            spacing 14
-            text "Юу асуух вэ?" size 30
-            bar value remaining range seconds xsize 830 ysize 8
-            for i, option in enumerate(options):
-                textbutton option action Return(i) xfill True
+    use moment_wide_answers([(option, Return(i)) for i, option in enumerate(options)], remaining, seconds)
 
 label story_inspect(room):
     $ story_inspection_finished = False

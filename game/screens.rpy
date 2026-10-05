@@ -205,11 +205,7 @@ style input:
 ## https://www.renpy.org/doc/html/screen_special.html#choice
 
 screen choice(items):
-    style_prefix "choice"
-
-    vbox:
-        for i in items:
-            textbutton i.caption action i.action
+    use moment_wide_answers([(i.caption, i.action) for i in items])
 
 
 style choice_vbox is vbox
