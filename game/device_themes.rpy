@@ -173,3 +173,11 @@ style device_input is input:
     font "DejaVuSans.ttf"
 style device_button_text:
     font "DejaVuSans.ttf"
+
+init python:
+    def device_phone_mask(child):
+        radius = 40 if device_theme_key() == "everyday" else 58
+        return AlphaMask(child, "images/devices/masks/phone_%s.svg" % radius)
+
+    def device_desktop_mask(child):
+        return AlphaMask(child, "images/devices/masks/desktop.svg")
