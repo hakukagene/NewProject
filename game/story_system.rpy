@@ -82,6 +82,8 @@ init python:
         unread = dict(renpy.store.moment_contact_unread)
         unread[contact] = unread.get(contact, 0) + 1
         renpy.store.moment_contact_unread = unread
+        renpy.store.story_corner_notice = {"contact": contact, "text": text}
+        renpy.store.story_corner_remaining = 8.0
 
     def story_prepare_bolor():
         renpy.store.moment_relationship = 55

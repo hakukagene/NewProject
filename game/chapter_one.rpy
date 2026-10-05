@@ -74,10 +74,6 @@ label chapter_one:
     anu "Хичээлийн эхний өдөрт нь амжилт. Чи хамгийн мундаг нь шүү."
     "Ану өөрийн дуулсан гитартай cover бичлэгээ явуулжээ."
     $ story_receive("anu", "Хичээлийн эхний өдөрт нь амжилт. Чи хамгийн мундаг нь шүү.")
-    $ moment_open_contact("anu")
-    hide screen story_scene_header
-    call screen phone_ui
-    show screen story_scene_header
     menu:
         "Сонсох":
             call listen_anu_cover
