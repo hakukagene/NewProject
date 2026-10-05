@@ -565,146 +565,148 @@ screen phone_ui():
         xysize (800, 1199)
         clipping True
 
-        fixed at phone_fullscreen_fit:
-            xpos 152 ypos 78 xysize (624, 984)
-            use device_wallpaper_layer
-
-        if phone_is_locked:
-            # The unlocked home page is already below the lock panel, so it
-            # is revealed continuously while the player swipes upward.
-            fixed at phone_content_fit:
-                xpos 160
-                ypos 120
-                xysize (624, 984)
-
-                use phone_main
-
-            # Draw the home status bar in the same coordinate system as the
-            # lock status bar. Keeping it outside phone_main prevents its
-            # negative Y compensation from being clipped by that screen.
+        fixed at device_phone_mask:
+            xysize (800, 1199)
             fixed at phone_fullscreen_fit:
-                xpos 152
-                ypos 78
-                xysize (624, 984)
+                xpos 152 ypos 78 xysize (624, 984)
+                use device_wallpaper_layer
 
-                use phone_status_bar(dark=True)
-
-            # Clip the moving page to the wallpaper's 492x1048 inner bounds.
-            # This prevents it from escaping above or below the phone while
-            # preserving the live swipe and snap-back animation.
-            fixed:
-                xpos 152
-                ypos 78
-                xysize (492, 1048)
-                clipping True
-
-                draggroup:
-                    xpos -152
-                    ypos -78
-                    xysize (800, 1199)
-
-                    drag:
-                        xpos 0
-                        ypos 0
-                        draggable True
-                        droppable False
-                        drag_raise False
-                        drag_handle (300, 1040, 200, 100)
-                        drag_offscreen phone_lock_drag_position
-                        dragged phone_lock_dragged
-                        snapped phone_lock_snapped
-
-                        fixed:
-                            xysize (800, 1199)
-
-                            # A second wallpaper travels with the lock layer.
-                            # The stationary clipping area and border overlay
-                            # keep it inside the physical screen opening.
-                            fixed at phone_fullscreen_fit:
-                                xpos 152 ypos 78 xysize (624, 984)
-                                use device_wallpaper_layer
-                                add Solid("#00000020")
-
-                            fixed at phone_fullscreen_fit:
-                                xpos 152
-                                ypos 78
-                                xysize (624, 984)
-
-                                use phone_lockscreen
-        else:
-            if phone_view == "home":
-                # Keep the icon grid in its existing safe-area layout.
+            if phone_is_locked:
+                # The unlocked home page is already below the lock panel, so it
+                # is revealed continuously while the player swipes upward.
                 fixed at phone_content_fit:
                     xpos 160
                     ypos 120
                     xysize (624, 984)
 
-                    if story_active:
-                        use story_phone_home
-                    else:
-                        use phone_main
+                    use phone_main
 
+                # Draw the home status bar in the same coordinate system as the
+                # lock status bar. Keeping it outside phone_main prevents its
+                # negative Y compensation from being clipped by that screen.
                 fixed at phone_fullscreen_fit:
                     xpos 152
                     ypos 78
                     xysize (624, 984)
 
                     use phone_status_bar(dark=True)
-            else:
-                # Every app page covers the complete display opening instead
-                # of leaving the wallpaper visible around a smaller safe area.
-                fixed at phone_fullscreen_fit:
+
+                # Clip the moving page to the wallpaper's 492x1048 inner bounds.
+                # This prevents it from escaping above or below the phone while
+                # preserving the live swipe and snap-back animation.
+                fixed:
                     xpos 152
                     ypos 78
-                    xysize (624, 984)
+                    xysize (492, 1048)
+                    clipping True
 
-                    if phone_view in ("device_settings", "moment_settings"):
-                        use device_phone_settings
-                    elif story_active and phone_view in ("social", "dm", "profile", "relationship", "story", "notifications", "moment_settings"):
-                        use story_moment_page
-                    elif phone_view == "social":
-                        use phone_moment_feed
-                    elif phone_view == "dm":
-                        use phone_moment_dm
-                    elif phone_view == "chat":
-                        use phone_moment_chat
-                    elif phone_view == "story":
-                        use phone_moment_story
-                    elif phone_view == "close_story":
-                        use phone_moment_close_story
-                    elif phone_view == "notifications":
-                        use phone_moment_notifications
-                    elif phone_view == "relationship":
-                        use phone_moment_relationship
-                    elif phone_view == "profile":
-                        use phone_moment_profile
-                    elif phone_view == "moment_settings":
-                        use phone_moment_settings
-                    elif phone_view == "music":
-                        use phone_music_app
-                    elif phone_view == "camera":
-                        use phone_camera_app
-                    elif phone_view == "gallery":
-                        use phone_gallery_app
-                    elif phone_view == "notes":
-                        use phone_notes_app
-                    else:
-                        use phone_moment_feed
-
-                    # An invisible 30px gesture region inside the display.
-                    # It sits above app controls and does not draw a home line.
                     draggroup:
-                        xysize (624, 984)
+                        xpos -152
+                        ypos -78
+                        xysize (800, 1199)
+
                         drag:
                             xpos 0
                             ypos 0
                             draggable True
                             droppable False
                             drag_raise False
-                            drag_handle (0, 954, 624, 30)
-                            drag_offscreen phone_home_drag_position
-                            dragged phone_home_dragged
-                            add Solid("#00000000") xysize (624, 984)
+                            drag_handle (300, 1040, 200, 100)
+                            drag_offscreen phone_lock_drag_position
+                            dragged phone_lock_dragged
+                            snapped phone_lock_snapped
+
+                            fixed:
+                                xysize (800, 1199)
+
+                                # A second wallpaper travels with the lock layer.
+                                # The stationary clipping area and border overlay
+                                # keep it inside the physical screen opening.
+                                fixed at phone_fullscreen_fit:
+                                    xpos 152 ypos 78 xysize (624, 984)
+                                    use device_wallpaper_layer
+                                    add Solid("#00000020")
+
+                                fixed at phone_fullscreen_fit:
+                                    xpos 152
+                                    ypos 78
+                                    xysize (624, 984)
+
+                                    use phone_lockscreen
+            else:
+                if phone_view == "home":
+                    # Keep the icon grid in its existing safe-area layout.
+                    fixed at phone_content_fit:
+                        xpos 160
+                        ypos 120
+                        xysize (624, 984)
+
+                        if story_active:
+                            use story_phone_home
+                        else:
+                            use phone_main
+
+                    fixed at phone_fullscreen_fit:
+                        xpos 152
+                        ypos 78
+                        xysize (624, 984)
+
+                        use phone_status_bar(dark=True)
+                else:
+                    # Every app page covers the complete display opening instead
+                    # of leaving the wallpaper visible around a smaller safe area.
+                    fixed at phone_fullscreen_fit:
+                        xpos 152
+                        ypos 78
+                        xysize (624, 984)
+
+                        if phone_view in ("device_settings", "moment_settings"):
+                            use device_phone_settings
+                        elif story_active and phone_view in ("social", "dm", "profile", "relationship", "story", "notifications", "moment_settings"):
+                            use story_moment_page
+                        elif phone_view == "social":
+                            use phone_moment_feed
+                        elif phone_view == "dm":
+                            use phone_moment_dm
+                        elif phone_view == "chat":
+                            use phone_moment_chat
+                        elif phone_view == "story":
+                            use phone_moment_story
+                        elif phone_view == "close_story":
+                            use phone_moment_close_story
+                        elif phone_view == "notifications":
+                            use phone_moment_notifications
+                        elif phone_view == "relationship":
+                            use phone_moment_relationship
+                        elif phone_view == "profile":
+                            use phone_moment_profile
+                        elif phone_view == "moment_settings":
+                            use phone_moment_settings
+                        elif phone_view == "music":
+                            use phone_music_app
+                        elif phone_view == "camera":
+                            use phone_camera_app
+                        elif phone_view == "gallery":
+                            use phone_gallery_app
+                        elif phone_view == "notes":
+                            use phone_notes_app
+                        else:
+                            use phone_moment_feed
+
+                        # An invisible 30px gesture region inside the display.
+                        # It sits above app controls and does not draw a home line.
+                        draggroup:
+                            xysize (624, 984)
+                            drag:
+                                xpos 0
+                                ypos 0
+                                draggable True
+                                droppable False
+                                drag_raise False
+                                drag_handle (0, 954, 624, 30)
+                                drag_offscreen phone_home_drag_position
+                                dragged phone_home_dragged
+                                add Solid("#00000000") xysize (624, 984)
 
         # Keep the bezel, rounded corners, and notch stationary above every
         # moving page. Transparent screen pixels remain fully interactive.

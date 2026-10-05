@@ -2,6 +2,7 @@
 default persistent.story_test_art = True
 default story_test_scene = ""
 default story_test_actors = ()
+default story_test_speaker = None
 
 init python:
     STORY_TEST_CHARACTERS = {
@@ -45,12 +46,11 @@ init python:
         # remain above them; an ordinary scene statement clears all previous art.
         for actor in STORY_TEST_CHARACTERS:
             renpy.hide("test_actor_" + actor)
-        actors = [a for a in renpy.store.story_test_actors
-                  if a in STORY_TEST_CHARACTERS and renpy.loadable(story_test_asset(a))]
-        positions = {1: (.68,), 2: (.28, .72), 3: (.18, .5, .82), 4: (.12, .37, .63, .88)}
-        actors = actors[:4]
-        for actor, position in zip(actors, positions.get(len(actors), ())):
-            height = 930 if len(actors) < 4 else 880
+        actor = renpy.store.story_test_speaker
+        actors = [actor] if actor in STORY_TEST_CHARACTERS and renpy.loadable(story_test_asset(actor)) else []
+        for actor in actors:
+            position = .68
+            height = 930
             # A live condition also updates the underlying game after leaving
             # the gallery's separate menu context, without waiting for a scene.
             visible_art = ConditionSwitch("persistent.story_test_art", story_test_asset(actor), "True", Null(), predict_all=True)
@@ -59,11 +59,13 @@ init python:
                 xpos=position, xanchor=.5, ypos=1080, yanchor=1.0), zorder=1)
 
     def story_set_test_cast(scene_id):
+        renpy.store.story_test_speaker = None
         renpy.store.story_test_scene = scene_id
         renpy.store.story_test_actors = STORY_TEST_CAST.get(scene_id, ())
         story_refresh_test_cast()
 
     def story_set_test_actors(actors):
+        renpy.store.story_test_speaker = None
         renpy.store.story_test_actors = tuple(actors)
         story_refresh_test_cast()
 
@@ -111,3 +113,19 @@ screen story_character_gallery():
                 style "gold_actor"
                 xpos 0 ypos 492
                 action Function(story_toggle_test_art)
+
+init 10 python:
+    import functools
+
+    def story_speaker_callback(actor, event, **kwargs):
+        if event == "begin":
+            renpy.store.story_test_speaker = actor
+            story_refresh_test_cast()
+
+    for character_name in tuple(STORY_TEST_CHARACTERS) + ("_narrator", "story_sister", "story_classmate", "story_sibling", "story_aggressor", "story_students"):
+        character = getattr(renpy.store, character_name, None)
+        if character is not None:
+            actor = character_name if character_name in STORY_TEST_CHARACTERS else None
+            previous = character.display_args.get("callback")
+            callbacks = [] if previous is None else (list(previous) if isinstance(previous, list) else [previous])
+            character.display_args["callback"] = callbacks + [functools.partial(story_speaker_callback, actor)]

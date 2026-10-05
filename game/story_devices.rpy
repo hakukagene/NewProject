@@ -89,7 +89,7 @@ screen story_desktop_shell():
             xalign .5 yalign .4 xysize (1640, 850)
             at Transform(zoom=1.13 if story_desktop_maximized else 1.0)
             add device_panel("#060b1499") xpos -8 ypos 12 xysize (1656, 850)
-            frame:
+            frame at device_desktop_mask:
                 xysize (1640, 850) padding (0, 0) background device_panel(device_palette()["surface"])
                 fixed:
                     xysize (1640, 850) clipping True
