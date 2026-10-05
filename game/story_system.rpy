@@ -166,7 +166,7 @@ label story_inspect(room):
             $ renpy.say(None, story_item[2])
     return
 
-screen story_inspection(room):
+screen story_inspection_list(room):
     modal True
     frame:
         xalign 0.5
