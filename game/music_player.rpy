@@ -31,6 +31,11 @@ init python:
     import random
 
     PHONE_MUSIC_DEMOS = {
+        "audio/music/Life Is Strange Soundtrack - To All Of You By Syd Matters - King_WCKD (128k).mp3": {
+            "title": "To All Of You",
+            "artist": "Syd Matters",
+            "album": "Life Is Strange",
+        },
         "audio/music/blue_hour.ogg": {
             "title": "Blue Hour",
             "artist": "Moment Originals",
@@ -76,6 +81,11 @@ init python:
                 "duration": metadata.get("duration"),
             })
         return tracks
+
+
+    def phone_music_label(value, limit=34):
+        value = str(value)
+        return phone_music_safe(value if len(value) <= limit else value[:limit - 1] + "…")
 
 
     def phone_music_tracks(kind="", key=""):
@@ -315,9 +325,9 @@ init python:
 
 
 screen phone_music_app():
-    add "pMusicBackground"
-    add Solid("#072e5c44")
-    use phone_status_bar(dark=True)
+    style_prefix "device"
+    add Solid(device_palette()["bg"])
+    use phone_status_bar(dark=device_palette()["status_light"])
     timer 0.5 repeat True action Function(phone_music_sync)
 
     if phone_music_view == "library":
@@ -336,6 +346,7 @@ screen phone_music_app():
 
 
 screen phone_music_header(title="Music Player"):
+    style_prefix "device"
 
     fixed:
         ypos 42
@@ -345,7 +356,7 @@ screen phone_music_header(title="Music Player"):
             xpos 25
             yalign 0.5
             text_size 32
-            text_color "#ffffff"
+            text_color device_palette()["text"]
             background None
 
             action If(
@@ -358,7 +369,7 @@ screen phone_music_header(title="Music Player"):
             xpos 96
             yalign 0.5
             size 26
-            color "#ffffff"
+            color device_palette()["text"]
             xmaximum 425
 
         if phone_music_view != "search":
@@ -368,15 +379,16 @@ screen phone_music_header(title="Music Player"):
                 xysize (58, 54)
                 padding (0, 0)
                 background None
-                hover_background Solid("#ffffff1a")
+                hover_background Solid(device_palette()["line"])
                 action Function(phone_music_open, "search")
 
-                add "images/phoneUI/music_search.svg" xalign 0.5 yalign 0.5
+                add AlphaMask(Solid(device_palette()["text"], xysize=(36, 36)), "images/phoneUI/music_search.svg") xalign 0.5 yalign 0.5
 
-    add Solid("#ffffff32") ypos 119 xysize (624, 1)
+    add Solid(device_palette()["line"]) ypos 119 xysize (624, 1)
 
 
 screen phone_music_library():
+    style_prefix "device"
     use phone_music_header
 
     hbox:
@@ -387,8 +399,8 @@ screen phone_music_library():
             button:
                 xysize (148, 102)
                 padding (0, 0)
-                background Solid("#ffffff09")
-                hover_background Solid("#ffffff20")
+                background Solid(device_palette()["surface_alt"])
+                hover_background Solid(device_palette()["line"])
                 action Function(phone_music_open, view)
                 vbox:
                     xalign 0.5
@@ -397,25 +409,25 @@ screen phone_music_library():
                     fixed:
                         xalign 0.5
                         xysize (60, 42)
-                        text "[icon]" xalign 0.5 yalign 0.5 size 34 color "#ffcf43"
-                    text "[label]" xalign 0.5 size 18 color "#ffffff"
-                    text "([count])" xalign 0.5 size 15 color "#d2e7ff"
+                        text "[icon]" xalign 0.5 yalign 0.5 size 34 color device_palette()["accent"]
+                    text "[label]" xalign 0.5 size 18 color device_palette()["text"]
+                    text "([count])" xalign 0.5 size 15 color device_palette()["muted"]
 
-    add Solid("#ffffff45") ypos 244 xysize (624, 1)
+    add Solid(device_palette()["line"]) ypos 244 xysize (624, 1)
     text "Playlists ([len(phone_music_playlists())])":
         xpos 32
         ypos 258
         size 20
-        color "#ffffff"
+        color device_palette()["text"]
     button:
         xpos 514
         ypos 250
         xysize (72, 48)
         padding (0, 0)
         background None
-        hover_background Solid("#ffffff1b")
+        hover_background Solid(device_palette()["line"])
         action SetVariable("phone_music_dialog", "new")
-        text "+" xalign 0.5 yalign 0.5 size 33 color "#ffffff"
+        text "+" xalign 0.5 yalign 0.5 size 33 color device_palette()["text"]
 
     viewport:
         xpos 22
@@ -431,8 +443,8 @@ screen phone_music_library():
                 button:
                     xysize (578, 90)
                     padding (0, 0)
-                    background Solid("#ffffff13")
-                    hover_background Solid("#ffffff28")
+                    background Solid(device_palette()["surface_alt"])
+                    hover_background Solid(device_palette()["line"])
                     action Function(phone_music_open_group, "playlist", key)
                     fixed:
                         xysize (578, 90)
@@ -440,31 +452,32 @@ screen phone_music_library():
                             xpos 12
                             yalign 0.5
                             xysize (76, 58)
-                            add Solid("#2367a6aa")
-                            text "[icon]" xalign 0.5 yalign 0.5 size 32 color "#ffffff"
+                            add Solid(device_palette()["surface_alt"])
+                            text "[icon]" xalign 0.5 yalign 0.5 size 32 color device_palette()["text"]
                         vbox:
                             xpos 106
                             yalign 0.5
                             spacing 4
-                            text "[phone_music_safe(title)]" size 21 color "#ffffff" xmaximum 400
-                            text "[count] songs" size 16 color "#c4dcfa"
-                        text "›" xpos 536 yalign 0.5 size 32 color "#ffffff"
+                            text "[phone_music_safe(title)]" size 21 color device_palette()["text"] xmaximum 400
+                            text "[count] songs" size 16 color device_palette()["muted"]
+                        text "›" xpos 536 yalign 0.5 size 32 color device_palette()["text"]
 
     textbutton "⇄":
         xpos 500
         ypos 800
         xysize (88, 64)
         text_size 38
-        text_color "#ffffff"
-        text_hover_color "#ffffff"
+        text_color device_palette()["text"]
+        text_hover_color device_palette()["text"]
         text_xalign 0.5
         text_yalign 0.5
-        background "pMusicRoundButton"
-        hover_background "pMusicRoundButton"
+        background device_panel(device_palette()["surface_alt"])
+        hover_background device_panel(device_palette()["surface_alt"])
         action Function(phone_music_shuffle_all)
 
 
 screen phone_music_browser():
+    style_prefix "device"
     $ view = phone_music_view
     $ groups = phone_music_groups("album" if view == "albums" else "artist" if view == "artists" else "folder")
     $ title = phone_music_list_key if view == "list" else {"tracks": "Tracks", "albums": "Albums", "artists": "Artists", "folder": "Folder"}.get(view, "Music")
@@ -476,13 +489,13 @@ screen phone_music_browser():
             xpos 30
             ypos 138
             size 18
-            color "#c4dcfa"
+            color device_palette()["muted"]
         if view == "list" and phone_music_list_kind == "playlist" and songs:
             textbutton "▶  Play all":
                 xpos 458
                 ypos 126
                 text_size 18
-                text_color "#ffcf43"
+                text_color device_palette()["accent"]
                 background None
                 action Function(phone_music_play, songs[0]["path"], [track["path"] for track in songs])
         viewport:
@@ -496,7 +509,7 @@ screen phone_music_browser():
             vbox:
                 spacing 5
                 if not songs:
-                    text "Энд одоохондоо дуу алга." size 21 color "#d4e9ff" xalign 0.5 ypos 84
+                    text "Энд одоохондоо дуу алга." size 21 color device_palette()["muted"] xalign 0.5 ypos 84
                 for track in songs:
                     use phone_music_track_row(track, [item["path"] for item in songs])
     else:
@@ -504,7 +517,7 @@ screen phone_music_browser():
             xpos 30
             ypos 139
             size 18
-            color "#c4dcfa"
+            color device_palette()["muted"]
         viewport:
             xpos 22
             ypos 180
@@ -518,57 +531,59 @@ screen phone_music_browser():
                 for label, count in groups:
                     button:
                         xysize (578, 92)
-                        background Solid("#ffffff16")
-                        hover_background Solid("#ffffff2b")
+                        background Solid(device_palette()["surface_alt"])
+                        hover_background Solid(device_palette()["line"])
                         action Function(phone_music_open_group, "album" if view == "albums" else "artist" if view == "artists" else "folder", label)
                         fixed:
                             xysize (555, 80)
-                            add Solid("#1e65a3aa") xpos 8 ypos 11 xysize (78, 58)
-                            text ("◎" if view == "albums" else "♙" if view == "artists" else "▱") xpos 23 ypos 18 size 32 color "#ffcf43"
-                            text "[phone_music_safe(label)]" xpos 98 ypos 11 size 22 color "#ffffff" xmaximum 410
-                            text "[count] songs" xpos 98 ypos 46 size 16 color "#c4dcfa"
+                            add Solid(device_palette()["surface_alt"]) xpos 8 ypos 11 xysize (78, 58)
+                            text ("◎" if view == "albums" else "♙" if view == "artists" else "▱") xpos 23 ypos 18 size 32 color device_palette()["accent"]
+                            text "[phone_music_safe(label)]" xpos 98 ypos 11 size 22 color device_palette()["text"] xmaximum 410
+                            text "[count] songs" xpos 98 ypos 46 size 16 color device_palette()["muted"]
 
 
 screen phone_music_track_row(track, order):
+    style_prefix "device"
     $ path = track["path"]
     fixed:
         xysize (578, 84)
         button:
             xysize (578, 84)
             padding (0, 0)
-            background Solid("#ffffff15")
-            hover_background Solid("#ffffff2a")
+            background Solid(device_palette()["surface_alt"])
+            hover_background Solid(device_palette()["line"])
             action Function(phone_music_play, path, order)
             fixed:
                 xysize (578, 84)
                 add "pMusicCover" xpos 6 ypos 12 xysize (80, 60)
-                text "[phone_music_safe(track['title'])]" xpos 100 ypos 13 size 20 color "#ffffff" xmaximum 340
-                text "[phone_music_safe(track['artist'])]" xpos 100 ypos 49 size 16 color "#c6dffb" xmaximum 324
+                text "[phone_music_label(track['title'])]" xpos 100 ypos 13 size 20 color device_palette()["text"] xmaximum 340
+                text "[phone_music_label(track['artist'])]" xpos 100 ypos 49 size 16 color device_palette()["muted"] xmaximum 324
         textbutton ("♥" if path in phone_music_favorites else "♡"):
             xpos 444
             ypos 21
             text_size 26
-            text_color "#ffcf43"
+            text_color device_palette()["accent"]
             background None
             action Function(phone_music_toggle_favorite, path)
         textbutton "⋮":
             xpos 524
             ypos 22
             text_size 27
-            text_color "#ffffff"
+            text_color device_palette()["text"]
             background None
             action Function(phone_music_open_track_menu, path)
 
 
 screen phone_music_search():
+    style_prefix "device"
     use phone_music_header("Search")
-    add Solid("#ffffff22") xpos 26 ypos 143 xysize (572, 60)
+    add Solid(device_palette()["surface_alt"]) xpos 26 ypos 143 xysize (572, 60)
     input:
         xpos 42
         ypos 156
         xsize 526
         size 22
-        color "#ffffff"
+        color device_palette()["text"]
         length 40
         value VariableInputValue("phone_music_query")
     $ query = phone_music_query.strip().casefold()
@@ -584,15 +599,16 @@ screen phone_music_search():
         vbox:
             spacing 5
             if not songs:
-                text "Илэрц олдсонгүй." size 20 color "#d4e9ff" xalign 0.5 ypos 70
+                text "Илэрц олдсонгүй." size 20 color device_palette()["muted"] xalign 0.5 ypos 70
             for track in songs:
                 use phone_music_track_row(track, [item["path"] for item in songs])
 
 
 screen phone_music_mini_player():
+    style_prefix "device"
     $ current = phone_music_selected_track()
-    add Solid("#062855f2") ypos 884 xysize (624, 100)
-    add Solid("#ffffff35") ypos 883 xysize (624, 1)
+    add Solid(device_palette()["surface"]) ypos 884 xysize (624, 100)
+    add Solid(device_palette()["line"]) ypos 883 xysize (624, 1)
     if current:
         button:
             xpos 8
@@ -600,25 +616,25 @@ screen phone_music_mini_player():
             xysize (410, 86)
             padding (0, 0)
             background None
-            hover_background Solid("#ffffff15")
+            hover_background Solid(device_palette()["surface_alt"])
             action Function(phone_music_open_player)
             fixed:
                 xysize (410, 86)
                 add "pMusicCover" xpos 6 ypos 10 xysize (88, 66)
-                text "[phone_music_safe(current['title'])]" xpos 108 ypos 16 size 20 color "#ffffff" xmaximum 275
-                text "[phone_music_safe(current['artist'])]" xpos 108 ypos 50 size 16 color "#c4dcfa" xmaximum 265
+                text "[phone_music_label(current['title'])]" xpos 108 ypos 16 size 20 color device_palette()["text"] xmaximum 275
+                text "[phone_music_label(current['artist'])]" xpos 108 ypos 50 size 16 color device_palette()["muted"] xmaximum 265
         textbutton ("Ⅱ" if phone_music_is_active() else "▶"):
             xpos 428
             ypos 907
             text_size 30
-            text_color "#ffffff"
+            text_color device_palette()["text"]
             background None
             action Function(phone_music_toggle)
         textbutton "▶▌":
             xpos 510
             ypos 907
             text_size 24
-            text_color "#ffffff"
+            text_color device_palette()["text"]
             background None
             action Function(phone_music_skip, 1)
     else:
@@ -626,50 +642,53 @@ screen phone_music_mini_player():
             xpos 25
             ypos 922
             size 18
-            color "#ffffff"
+            color device_palette()["text"]
 
 
 screen phone_music_player():
+    style_prefix "device"
     $ current = phone_music_selected_track()
     use phone_music_header("Now Playing")
     if current:
         add "pMusicCover" xpos 96 ypos 198 xysize (432, 320)
-        text "[phone_music_safe(current['title'])]":
+        text "[phone_music_label(current['title'])]":
             xalign 0.5
-            ypos 600
-            size 31
-            color "#ffffff"
-        text "[phone_music_safe(current['artist'])]":
+            ypos 584
+            xmaximum 420
+            text_align .5
+            size 23
+            color device_palette()["text"]
+        text "[phone_music_label(current['artist'])]":
             xalign 0.5
             ypos 649
             size 20
-            color "#cde4ff"
+            color device_palette()["muted"]
         textbutton ("♥" if current["path"] in phone_music_favorites else "♡"):
             xpos 538
             ypos 599
             text_size 30
-            text_color "#ffcf43"
+            text_color device_palette()["accent"]
             background None
             action Function(phone_music_toggle_favorite, current["path"])
-        add Solid("#ffffff52") xpos 60 ypos 710 xysize (504, 7)
-        add Solid("#ffcf43") xpos 60 ypos 710 xysize (max(2, int(504 * phone_music_progress())), 7)
+        add Solid(device_palette()["line"]) xpos 60 ypos 710 xysize (504, 7)
+        add Solid(device_palette()["accent"]) xpos 60 ypos 710 xysize (max(2, int(504 * phone_music_progress())), 7)
         text "[phone_music_time(renpy.music.get_pos(channel='phone_music'))]":
             xpos 60
             ypos 727
             size 17
-            color "#ffffff"
+            color device_palette()["text"]
         $ duration_text = phone_music_time(current["duration"]) if current["duration"] else "--:--"
         text "[duration_text]":
             xpos 564
             xanchor 1.0
             ypos 727
             size 17
-            color "#ffffff"
+            color device_palette()["text"]
         textbutton "▌◀":
             xpos 134
             ypos 777
             text_size 28
-            text_color "#ffffff"
+            text_color device_palette()["text"]
             background None
             action Function(phone_music_skip, -1)
         textbutton ("Ⅱ" if phone_music_is_active() else "▶"):
@@ -679,22 +698,22 @@ screen phone_music_player():
             text_xalign 0.5
             text_yalign 0.5
             text_size 31
-            text_color "#ffffff"
-            background "pMusicRoundButton"
-            hover_background "pMusicRoundButton"
+            text_color device_palette()["text"]
+            background device_panel(device_palette()["surface_alt"])
+            hover_background device_panel(device_palette()["surface_alt"])
             action Function(phone_music_toggle)
         textbutton "▶▌":
             xpos 437
             ypos 777
             text_size 28
-            text_color "#ffffff"
+            text_color device_palette()["text"]
             background None
             action Function(phone_music_skip, 1)
         textbutton "⇄ Shuffle":
             xalign 0.5
             ypos 870
             text_size 19
-            text_color "#ffcf43"
+            text_color device_palette()["accent"]
             background None
             action Function(phone_music_shuffle_all)
     else:
@@ -704,10 +723,11 @@ screen phone_music_player():
             xmaximum 520
             text_align 0.5
             size 21
-            color "#ffffff"
+            color device_palette()["text"]
 
 
 screen phone_music_popup():
+    style_prefix "device"
     button:
         xysize (624, 984)
         padding (0, 0)
@@ -718,49 +738,49 @@ screen phone_music_popup():
         xalign 0.5
         yalign 0.5
         xsize 504
-        background Solid("#153f73")
+        background Solid(device_palette()["surface"])
         padding (24, 22)
         vbox:
             xfill True
             spacing 12
             if phone_music_dialog == "menu":
-                text "Music Player" size 27 bold True color "#ffffff" xalign 0.5
-                add Solid("#ffffff30") xysize (456, 1)
+                text "Music Player" size 27 bold True color device_palette()["text"] xalign 0.5
+                add Solid(device_palette()["line"]) xysize (456, 1)
                 textbutton "⌂   Утасны нүүр":
                     xsize 456
                     text_size 21
-                    text_color "#ffffff"
-                    background Solid("#ffffff10")
+                    text_color device_palette()["text"]
+                    background Solid(device_palette()["surface_alt"])
                     padding (16, 12)
                     action Function(phone_go_home)
                 textbutton "♫   Tracks":
                     xsize 456
                     text_size 21
-                    text_color "#ffffff"
-                    background Solid("#ffffff10")
+                    text_color device_palette()["text"]
+                    background Solid(device_palette()["surface_alt"])
                     padding (16, 12)
                     action Function(phone_music_open, "tracks")
                 textbutton "▤   Playlists":
                     xsize 456
                     text_size 21
-                    text_color "#ffffff"
-                    background Solid("#ffffff10")
+                    text_color device_palette()["text"]
+                    background Solid(device_palette()["surface_alt"])
                     padding (16, 12)
                     action Function(phone_music_open, "library")
             elif phone_music_dialog == "new":
-                text "Шинэ playlist" size 27 color "#ffffff"
+                text "Шинэ playlist" size 27 color device_palette()["text"]
                 frame:
                     xysize (456, 60)
-                    background Solid("#ffffff27")
+                    background Solid(device_palette()["surface_alt"])
                     padding (12, 8)
-                    input value VariableInputValue("phone_music_new_name") length 28 color "#ffffff" size 22
-                textbutton "Үүсгэх" text_size 22 text_color "#ffcf43" action Function(phone_music_create_playlist)
+                    input value VariableInputValue("phone_music_new_name") length 28 color device_palette()["text"] size 22
+                textbutton "Үүсгэх" text_size 22 text_color device_palette()["accent"] action Function(phone_music_create_playlist)
             elif phone_music_dialog == "track":
                 $ selected = phone_music_track(phone_music_selected)
                 $ selected_title = phone_music_safe(selected["title"]) if selected else "Дуу"
-                text "[selected_title]" size 25 color "#ffffff"
+                text "[selected_title]" size 25 color device_palette()["text"]
                 if phone_music_list_kind == "playlist" and phone_music_list_key in phone_music_custom_playlists and phone_music_selected in phone_music_custom_playlists[phone_music_list_key]:
-                    textbutton "Playlist-аас хасах" text_size 20 text_color "#ffffff" action Function(phone_music_remove_from_playlist, phone_music_selected, phone_music_list_key)
+                    textbutton "Playlist-аас хасах" text_size 20 text_color device_palette()["text"] action Function(phone_music_remove_from_playlist, phone_music_selected, phone_music_list_key)
                 viewport:
                     xysize (456, min(310, max(55, len(phone_music_custom_playlists) * 58)))
                     mousewheel True
@@ -768,8 +788,8 @@ screen phone_music_popup():
                     vbox:
                         spacing 4
                         for name in phone_music_custom_playlists:
-                            textbutton "[phone_music_safe(name)]-д нэмэх" text_size 20 text_color "#ffffff" action Function(phone_music_add_to_playlist, phone_music_selected, name)
+                            textbutton "[phone_music_safe(name)]-д нэмэх" text_size 20 text_color device_palette()["text"] action Function(phone_music_add_to_playlist, phone_music_selected, name)
             textbutton "Хаах":
                 text_size 20
-                text_color "#aacff6"
+                text_color device_palette()["muted"]
                 action SetVariable("phone_music_dialog", "")

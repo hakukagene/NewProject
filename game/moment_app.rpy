@@ -56,7 +56,7 @@ init python:
     import time
     import unicodedata
 
-    MOMENT_THEME_ORDER = ("midnight", "violet", "daylight")
+    MOMENT_THEME_ORDER = DEVICE_THEME_ORDER
     MOMENT_CLOSE_FRIEND_THRESHOLD = 60
 
 
@@ -83,50 +83,7 @@ init python:
         "hidden_post_unlock",
     )
 
-    MOMENT_THEMES = {
-        "midnight": {
-            "name": "Midnight",
-            "bg": "#07080b",
-            "surface": "#101217",
-            "surface_alt": "#181b22",
-            "line": "#272b35",
-            "text": "#f8fafc",
-            "muted": "#9ca3af",
-            "accent": "#8b5cf6",
-            "accent_alt": "#22d3ee",
-            "hot": "#ff3d71",
-            "success": "#34d399",
-            "status_light": True,
-        },
-        "violet": {
-            "name": "Violet",
-            "bg": "#10091b",
-            "surface": "#1b102b",
-            "surface_alt": "#28153d",
-            "line": "#43225f",
-            "text": "#fff7ff",
-            "muted": "#c4b5d4",
-            "accent": "#d946ef",
-            "accent_alt": "#7c3aed",
-            "hot": "#fb7185",
-            "success": "#2dd4bf",
-            "status_light": True,
-        },
-        "daylight": {
-            "name": "Daylight",
-            "bg": "#f8fafc",
-            "surface": "#ffffff",
-            "surface_alt": "#eef2ff",
-            "line": "#d8deea",
-            "text": "#111827",
-            "muted": "#64748b",
-            "accent": "#7c3aed",
-            "accent_alt": "#0284c7",
-            "hot": "#e11d48",
-            "success": "#059669",
-            "status_light": False,
-        },
-    }
+    MOMENT_THEMES = DEVICE_THEMES
 
     MOMENT_CONTACT_ORDER = (
         "sara",
@@ -213,31 +170,14 @@ init python:
 
 
     def moment_theme_colors():
-        return MOMENT_THEMES.get(
-            renpy.store.moment_theme,
-            MOMENT_THEMES["midnight"],
-        )
-
+        return device_palette()
 
     def moment_set_theme(theme_name):
-        if theme_name not in MOMENT_THEMES:
-            return
-
-        renpy.store.moment_theme = theme_name
-        renpy.notify("Moment theme: %s" % MOMENT_THEMES[theme_name]["name"])
-        renpy.restart_interaction()
-
+        device_set_theme({"daylight": "clean", "violet": "midnight"}.get(theme_name, theme_name))
 
     def moment_cycle_theme():
-        current = renpy.store.moment_theme
-        try:
-            index = MOMENT_THEME_ORDER.index(current)
-        except ValueError:
-            index = 0
-
-        moment_set_theme(
-            MOMENT_THEME_ORDER[(index + 1) % len(MOMENT_THEME_ORDER)]
-        )
+        index = DEVICE_THEME_ORDER.index(device_theme_key())
+        device_set_theme(DEVICE_THEME_ORDER[(index + 1) % len(DEVICE_THEME_ORDER)])
 
 
     def moment_feed_carousel_drag_position(x, y):
@@ -634,6 +574,7 @@ init python:
 
 
 screen moment_page_header(title, back_target="social", right_label=None, right_target=None):
+    style_prefix "device"
     $ theme = moment_theme_colors()
 
     use phone_status_bar(dark=theme["status_light"])
@@ -675,6 +616,7 @@ screen moment_page_header(title, back_target="social", right_label=None, right_t
 
 
 screen moment_nav_button(icon_path, target, selected=False, badge=0):
+    style_prefix "device"
     $ theme = moment_theme_colors()
     $ icon_color = theme["accent_alt"] if selected else theme["muted"]
     $ button_width = 144
@@ -720,6 +662,7 @@ screen moment_nav_button(icon_path, target, selected=False, badge=0):
 
 
 screen moment_bottom_nav(active="home"):
+    style_prefix "device"
     $ theme = moment_theme_colors()
 
     frame:
@@ -756,6 +699,7 @@ screen moment_bottom_nav(active="home"):
 
 
 screen moment_composer_icon(icon_path, button_action, button_x, accent=False, icon_crop=None, button_y=20):
+    style_prefix "device"
     $ theme = moment_theme_colors()
     $ icon_color = "#ffffff" if accent else theme["text"]
     $ icon_source = Crop(icon_crop, icon_path) if icon_crop else icon_path
@@ -795,6 +739,7 @@ screen moment_composer_icon(icon_path, button_action, button_x, accent=False, ic
 
 
 screen moment_avatar(initial, avatar_color, avatar_x=18, avatar_y=10, avatar_size=56, initial_size=20):
+    style_prefix "device"
     fixed:
         xpos avatar_x
         ypos avatar_y
@@ -816,6 +761,7 @@ screen moment_avatar(initial, avatar_color, avatar_x=18, avatar_y=10, avatar_siz
 
 
 screen moment_story_item(label, initial, ring_color, target=None, locked=False):
+    style_prefix "device"
     $ theme = moment_theme_colors()
 
     vbox:
@@ -866,6 +812,7 @@ screen moment_story_item(label, initial, ring_color, target=None, locked=False):
 
 
 screen phone_moment_feed():
+    style_prefix "device"
     $ theme = moment_theme_colors()
     $ unread = moment_unread_count()
     $ close_friend = moment_is_close_friend()
@@ -1258,6 +1205,7 @@ transform moment_story_progress_fill(duration, target_width):
 
 
 screen moment_story_progress_row(stories, current_index, story_duration):
+    style_prefix "device"
     $ story_count = max(1, len(stories))
     $ segment_width = int((588 - ((story_count - 1) * 5)) / story_count)
 
@@ -1281,6 +1229,7 @@ screen moment_story_progress_row(stories, current_index, story_duration):
 
 
 screen phone_moment_story():
+    style_prefix "device"
     $ theme = moment_theme_colors()
     $ stories = MOMENT_SARA_STORIES
     $ story_index = moment_story_safe_index(moment_story_index, stories)
@@ -1426,6 +1375,7 @@ screen phone_moment_story():
 
 
 screen phone_moment_close_story():
+    style_prefix "device"
     $ theme = moment_theme_colors()
     $ stories = MOMENT_CLOSE_FRIEND_STORIES
     $ story_index = moment_story_safe_index(moment_close_story_index, stories)
@@ -1526,6 +1476,7 @@ screen phone_moment_close_story():
 
 
 screen phone_moment_notifications():
+    style_prefix "device"
     $ theme = moment_theme_colors()
     $ unread = moment_unread_count()
     $ visible_notifications = moment_active_notifications()
@@ -1617,80 +1568,12 @@ screen phone_moment_notifications():
 
 
 screen phone_moment_settings():
-    $ theme = moment_theme_colors()
-
-    add Solid(theme["bg"])
-    use moment_page_header("Moment style", back_target="social")
-
-    text "Өнгөний загвар":
-        xpos 24
-        ypos 142
-        size 22
-        bold True
-        color theme["text"]
-    text "Тоглоомын явцад хүссэн үедээ сольж болно.":
-        xpos 24
-        ypos 176
-        size 15
-        color theme["muted"]
-
-    vbox:
-        xpos 24
-        ypos 224
-        spacing 18
-
-        for theme_name in MOMENT_THEME_ORDER:
-            $ option = MOMENT_THEMES[theme_name]
-            $ option_state = "ИДЭВХТЭЙ" if moment_theme == theme_name else "Сонгох"
-
-            button:
-                xysize (576, 150)
-                padding (18, 16)
-                background Solid(
-                    option["accent"] + "32"
-                    if moment_theme == theme_name
-                    else theme["surface"]
-                )
-                hover_background Solid(option["accent"] + "45")
-                action Function(moment_set_theme, theme_name)
-
-                vbox:
-                    spacing 12
-
-                    hbox:
-                        spacing 12
-                        add Solid(option["bg"]) xysize (66, 42)
-                        add Solid(option["surface_alt"]) xysize (66, 42)
-                        add Solid(option["accent"]) xysize (66, 42)
-                        add Solid(option["accent_alt"]) xysize (66, 42)
-                        add Solid(option["hot"]) xysize (66, 42)
-
-                    text option["name"]:
-                        size 22
-                        bold True
-                        color theme["text"]
-                    text option_state:
-                        size 13
-                        bold True
-                        color (
-                            option["success"]
-                            if moment_theme == theme_name
-                            else theme["muted"]
-                        )
-
-    textbutton "THEME-Г ШУУД СОЛИХ":
-        xpos 24
-        ypos 770
-        xysize (576, 62)
-        text_size 17
-        text_bold True
-        text_color "#ffffff"
-        background Solid(theme["accent"])
-        hover_background Solid(theme["accent_alt"])
-        action Function(moment_cycle_theme)
+    style_prefix "device"
+    use device_phone_settings
 
 
 screen phone_moment_relationship():
+    style_prefix "device"
     $ theme = moment_theme_colors()
     $ relationship_width = int(540 * moment_relationship / 100.0)
     $ close_friend = moment_is_close_friend()
@@ -1785,6 +1668,7 @@ screen phone_moment_relationship():
 
 
 screen phone_moment_dm():
+    style_prefix "device"
     $ theme = moment_theme_colors()
     $ total_unread = moment_dm_unread_count()
 
@@ -1966,6 +1850,7 @@ screen phone_moment_dm():
 
 
 screen phone_moment_chat():
+    style_prefix "device"
     $ theme = moment_theme_colors()
     $ contact = moment_active_contact_data()
     $ active_messages = moment_active_messages()
@@ -2104,11 +1989,11 @@ screen phone_moment_chat():
                             text phone_escape_chat_text(msg["text"]):
                                 size 19
                                 language "anywhere"
-                                color "#ffffff"
+                                color theme["on_accent"]
                             text msg.get("time", ""):
                                 xalign 1.0
                                 size 12
-                                color "#e9d5ff"
+                                color theme["on_accent"]
                 else:
                     hbox:
                         xalign 0.0
@@ -2277,6 +2162,7 @@ screen phone_moment_chat():
 
 
 screen phone_moment_profile():
+    style_prefix "device"
     $ theme = moment_theme_colors()
 
     add Solid(theme["bg"])
