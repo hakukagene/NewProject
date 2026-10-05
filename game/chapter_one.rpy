@@ -594,8 +594,10 @@ label chapter_one:
 
 label listen_anu_cover:
     $ story_cover_path = "audio/story/anu_cover.ogg"
+    if not renpy.loadable(story_cover_path):
+        $ story_cover_path = "audio/music/Life Is Strange Soundtrack - To All Of You By Syd Matters - King_WCKD (128k).mp3"
     if renpy.loadable(story_cover_path):
-        $ renpy.music.play(story_cover_path)
+        $ renpy.music.play(story_cover_path, loop=False)
         "Анугийн гитартай cover тоглож байна."
         stop music fadeout 1.0
     else:
