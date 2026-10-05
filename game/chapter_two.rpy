@@ -80,9 +80,10 @@ label chapter_two:
     "Эгч гэсэн дуудлага ирэх ба \"авах\" \"таслах\" гэсэн сонголт гарч ирнэ."
     "Таслах гэдгийг сонговол эргүүлээд залгана."
     "Хоёр удаа таслахыг дарсны дараа Билгүүн \"Авахгүй бол цаашаа явахгүй юм байна\" гэж хэлнэ."
-    $ story_call_declines = 0
+    $ story_call_reset()
     call screen story_sister_call
     $ story_flags["sister_call_answered"] = True
+    show screen story_call_active
     story_sister "Юу байна миний дүү. Гэртээ харисан юм уу? Аав намайг асууж байна уу?"
     menu:
         "Харих гээд л явж байна? Яасан эгчээ":
@@ -99,6 +100,9 @@ label chapter_two:
             bilguun "Уучлаарай таны залгасан дугаар таньд дургүй тул дахиж битгий залгана уу?"
     story_sister "Миний дүү анай нь юм хэлэх гээд байна аа. Чи сайн сонсож байгаарай"
     "гэх үед ард нь юм түчигнэх ба нэг охиныг албан байгууллагаас нэг эрэгтэй түлхэж гаргаж байх ба гадаа гаргаад усан дээр унагав. Утасны цаана эгч нь Билгүүнээ байна уу гэх ба Билгүүн утсаа таслан тэр охины зүг явлаа."
+    hide screen story_call_active
+    $ story_call_finish()
+    call screen story_call_ended
     "Билгүүн тэр охиныг унасан газраас нь босгоход"
     saruul "Ээ та нар өөр юу хийж чадах юм айн? Угаасаа танайхаас гарах аргаа олохгүй байсан юм."
     "гэж чанга дуугаар ууртай хэлэв."
@@ -501,21 +505,6 @@ label chapter_two:
     hide screen story_scene_header
     "Шинэчилсэн зохиолын энэ хэсэг дууслаа."
     return
-
-screen story_sister_call():
-    modal True
-    frame:
-        xalign .5 yalign .5
-        padding (45, 35)
-        background gold_panel()
-        vbox:
-            spacing 24
-            text "Эгч залгаж байна…" size 36
-            textbutton "Авах" action Return()
-            if story_call_declines < 2:
-                textbutton "Таслах" action SetVariable("story_call_declines", story_call_declines + 1)
-            else:
-                text "Авахгүй бол цаашаа явахгүй юм байна." size 24
 
 init 10 python:
     STORY_INSPECTIONS["saruul_home"] = [
