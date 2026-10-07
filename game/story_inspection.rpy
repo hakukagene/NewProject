@@ -85,3 +85,47 @@ screen story_inspection(room):
     else:
         # Future scenes without mapped artwork keep a functional list.
         use story_inspection_list(room)
+
+
+transform story_inspection_open:
+    alpha 0.0 zoom .96
+    ease .18 alpha 1.0 zoom 1.0
+
+screen story_inspection_closeup(room, item):
+    modal True
+    zorder 160
+    key "game_menu" action Return()
+    $ region = STORY_INSPECTION_REGIONS[room][item[0]]
+    $ preview_scale = min(1000.0 / region[2], 570.0 / region[3])
+    $ preview_size = (int(region[2] * preview_scale), int(region[3] * preview_scale))
+    add Transform(story_background(room), blur=12)
+    add Solid("#080d18a8")
+    frame at story_inspection_open:
+        xalign .5 yalign .5 xysize (1160, 950)
+        padding (2, 2)
+        background device_panel("#d6b875")
+        frame:
+            xfill True yfill True padding (64, 46)
+            background device_panel("#162232f5")
+            fixed:
+                text item[1] xalign .5 ypos 4 size 36 color "#ffe0a5"
+                textbutton "×":
+                    id "inspection_close"
+                    xalign 1.0 ypos 0 xysize (52, 52)
+                    text_font "DejaVuSans.ttf" text_size 36 text_xalign .5 text_yalign .5
+                    text_color "#ffe0a5"
+                    background None hover_background device_panel("#ffffff18")
+                    action Return()
+                fixed:
+                    xpos 14 ypos 78 xysize (1000, 570)
+                    add Transform(Crop(region, story_background(room)), xysize=preview_size) xalign .5 yalign .5
+                viewport:
+                    xpos 14 ypos 673 xysize (1000, 100)
+                    mousewheel True draggable True
+                    text item[2] size 25 color "#e3e5e8" xminimum 980 xmaximum 980 textalign .5
+                textbutton "Буцах":
+                    id "inspection_back"
+                    xalign .5 ypos 790 xysize (300, 64)
+                    text_size 27 text_xalign .5 text_yalign .5 text_color "#ffe0a5"
+                    background device_panel("#364457") hover_background device_panel("#4c5c70")
+                    action Return()
