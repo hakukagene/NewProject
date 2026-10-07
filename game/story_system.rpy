@@ -163,7 +163,10 @@ label story_inspect(room):
                 $ story_inspected = story_inspected + [story_item[0]]
                 if story_item[0] == "piano_award":
                     $ story_flags["knows_piano"] = True
-            $ renpy.say(None, story_item[2])
+            if story_has_inspection_regions(room):
+                call screen story_inspection_closeup(room, story_item)
+            else:
+                $ renpy.say(None, story_item[2])
     return
 
 screen story_inspection_list(room):
